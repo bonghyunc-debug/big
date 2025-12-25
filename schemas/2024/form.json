@@ -1,0 +1,220 @@
+{
+  "version": "2024.1",
+  "title": "2024 자산 양도소득세 본표",
+  "description": "본표 및 부표 연동 규칙을 담은 기본 입력 스키마",
+  "fields": [
+    {
+      "name": "filingYear",
+      "label": "신고연도",
+      "type": "integer",
+      "required": true,
+      "unit": "year",
+      "validators": [
+        { "type": "enum", "values": [2024] }
+      ]
+    },
+    {
+      "name": "taxpayerId",
+      "label": "납세자 식별번호",
+      "type": "string",
+      "required": true,
+      "unit": "registration-no",
+      "validators": [
+        { "type": "pattern", "pattern": "^[0-9]{10,13}$" }
+      ]
+    },
+    {
+      "name": "residentType",
+      "label": "거주자 구분",
+      "type": "enum",
+      "required": true,
+      "unit": "status",
+      "validators": [
+        { "type": "enum", "values": ["resident", "non_resident"] }
+      ]
+    },
+    {
+      "name": "hasMultipleAssets",
+      "label": "다건 자산 여부",
+      "type": "boolean",
+      "required": true,
+      "dependsOn": [
+        "schedules.real_estate.rows",
+        "schedules.financial_assets.rows",
+        "schedules.virtual_assets.rows"
+      ],
+      "validators": [
+        {
+          "type": "booleanConsistency",
+          "rule": "true when any schedule contains more than one asset"
+        }
+      ]
+    },
+    {
+      "name": "aggregateTransferAmount",
+      "label": "양도가액 합계",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": ["bindings.aggregates.totalTransferAmount"],
+      "validators": [
+        { "type": "nonNegative" },
+        { "type": "equals", "valueFrom": "bindings.aggregates.totalTransferAmount" }
+      ]
+    },
+    {
+      "name": "aggregateAcquisitionAmount",
+      "label": "취득가액 합계",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": ["bindings.aggregates.totalAcquisitionAmount"],
+      "validators": [
+        { "type": "nonNegative" },
+        { "type": "equals", "valueFrom": "bindings.aggregates.totalAcquisitionAmount" }
+      ]
+    },
+    {
+      "name": "aggregateExpenses",
+      "label": "필요경비 합계",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": ["bindings.aggregates.totalExpenses"],
+      "validators": [
+        { "type": "nonNegative" },
+        { "type": "equals", "valueFrom": "bindings.aggregates.totalExpenses" }
+      ]
+    },
+    {
+      "name": "aggregateNetGain",
+      "label": "양도차익 합계",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": [
+        "aggregateTransferAmount",
+        "aggregateAcquisitionAmount",
+        "aggregateExpenses"
+      ],
+      "validators": [
+        {
+          "type": "equals",
+          "valueFrom": "aggregateTransferAmount - aggregateAcquisitionAmount - aggregateExpenses"
+        }
+      ]
+    },
+    {
+      "name": "basicDeduction",
+      "label": "기본공제",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": ["bindings.basicDeduction.amount"],
+      "validators": [
+        {
+          "type": "max",
+          "valueFrom": "bindings.basicDeduction.amount"
+        }
+      ]
+    },
+    {
+      "name": "longTermDeductionApplied",
+      "label": "장기보유특별공제 적용 여부",
+      "type": "boolean",
+      "required": false,
+      "dependsOn": ["bindings.longTermDeductionLimit"],
+      "validators": [
+        {
+          "type": "booleanConsistency",
+          "rule": "true only when at least one schedule row has longTermDeductionRate > 0"
+        }
+      ]
+    },
+    {
+      "name": "taxableBase",
+      "label": "과세표준",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": [
+        "aggregateNetGain",
+        "basicDeduction"
+      ],
+      "validators": [
+        { "type": "nonNegative" },
+        {
+          "type": "equals",
+          "valueFrom": "max(0, aggregateNetGain - basicDeduction)"
+        }
+      ]
+    },
+    {
+      "name": "progressiveTax",
+      "label": "산출세액",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": [
+        "taxableBase",
+        "bindings.rates.generalTaxRates"
+      ],
+      "validators": [
+        {
+          "type": "usesRateTable",
+          "rateTableRef": "bindings.rates.generalTaxRates",
+          "deductionRef": "bindings.rates.progressiveDeductions"
+        }
+      ]
+    }
+  ],
+  "bindings": {
+    "rates": "tables/2024/rates.json",
+    "aggregates": {
+      "totalTransferAmount": {
+        "sources": [
+          "real_estate.totalTransferAmount",
+          "financial_assets.totalTransferAmount",
+          "virtual_assets.totalTransferAmount"
+        ],
+        "rule": "sum"
+      },
+      "totalAcquisitionAmount": {
+        "sources": [
+          "real_estate.totalAcquisitionAmount",
+          "financial_assets.totalAcquisitionAmount",
+          "virtual_assets.totalAcquisitionAmount"
+        ],
+        "rule": "sum"
+      },
+      "totalExpenses": {
+        "sources": [
+          "real_estate.totalExpenses",
+          "financial_assets.totalExpenses",
+          "virtual_assets.totalExpenses"
+        ],
+        "rule": "sum"
+      },
+      "totalGain": {
+        "sources": [
+          "real_estate.totalGain",
+          "financial_assets.totalGain",
+          "virtual_assets.totalGain"
+        ],
+        "rule": "sum"
+      }
+    },
+    "basicDeduction": {
+      "amount": "tables/2024/rates.json#basicDeduction.amount",
+      "appliesOnce": true,
+      "appliesWhen": "aggregates.totalGain > 0"
+    },
+    "longTermDeductionLimit": "tables/2024/rates.json#longTermHoldingSpecialDeductionLimit",
+    "scheduleBindings": {
+      "aggregateTransferAmount": "aggregates.totalTransferAmount",
+      "aggregateAcquisitionAmount": "aggregates.totalAcquisitionAmount",
+      "aggregateExpenses": "aggregates.totalExpenses",
+      "aggregateNetGain": "aggregates.totalGain"
+    }
+  }
+}

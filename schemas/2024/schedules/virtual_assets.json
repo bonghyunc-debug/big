@@ -1,0 +1,111 @@
+{
+  "schedule": "virtual_assets",
+  "title": "2024년 가상자산 양도 부표",
+  "rowLabel": "virtual_asset",
+  "fields": [
+    {
+      "name": "assetId",
+      "label": "거래소 자산 ID",
+      "type": "string",
+      "required": true,
+      "unit": "id"
+    },
+    {
+      "name": "symbol",
+      "label": "심볼",
+      "type": "string",
+      "required": true,
+      "unit": "ticker"
+    },
+    {
+      "name": "exchange",
+      "label": "거래소",
+      "type": "string",
+      "required": true,
+      "unit": "platform"
+    },
+    {
+      "name": "acquisitionDate",
+      "label": "취득일",
+      "type": "date",
+      "required": true,
+      "unit": "yyyy-mm-dd"
+    },
+    {
+      "name": "transferDate",
+      "label": "양도일",
+      "type": "date",
+      "required": true,
+      "unit": "yyyy-mm-dd",
+      "dependsOn": ["acquisitionDate"],
+      "validators": [
+        { "type": "after", "field": "acquisitionDate" }
+      ]
+    },
+    {
+      "name": "quantity",
+      "label": "수량",
+      "type": "number",
+      "required": true,
+      "unit": "coins",
+      "validators": [
+        { "type": "min", "value": 0.00000001 }
+      ]
+    },
+    {
+      "name": "acquisitionPrice",
+      "label": "취득단가",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "transferPrice",
+      "label": "양도단가",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "fees",
+      "label": "거래수수료",
+      "type": "number",
+      "required": false,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "gain",
+      "label": "양도차익",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": [
+        "quantity",
+        "acquisitionPrice",
+        "transferPrice",
+        "fees"
+      ],
+      "validators": [
+        {
+          "type": "equals",
+          "valueFrom": "(transferPrice - acquisitionPrice) * quantity - fees"
+        }
+      ]
+    }
+  ],
+  "aggregates": {
+    "totalTransferAmount": { "field": "transferPrice", "method": "weightedSum", "weightField": "quantity" },
+    "totalAcquisitionAmount": { "field": "acquisitionPrice", "method": "weightedSum", "weightField": "quantity" },
+    "totalExpenses": { "field": "fees", "method": "sum" },
+    "totalGain": { "field": "gain", "method": "sum" }
+  }
+}

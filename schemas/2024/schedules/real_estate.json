@@ -1,0 +1,149 @@
+{
+  "schedule": "real_estate",
+  "title": "2024년 부동산 양도 부표",
+  "rowLabel": "property",
+  "fields": [
+    {
+      "name": "assetId",
+      "label": "자산 식별자",
+      "type": "string",
+      "required": true,
+      "unit": "id"
+    },
+    {
+      "name": "assetType",
+      "label": "자산 종류",
+      "type": "enum",
+      "required": true,
+      "unit": "category",
+      "validators": [
+        { "type": "enum", "values": ["land", "building", "mixed_use"] }
+      ]
+    },
+    {
+      "name": "location",
+      "label": "소재지",
+      "type": "string",
+      "required": true,
+      "unit": "address"
+    },
+    {
+      "name": "acquisitionDate",
+      "label": "취득일",
+      "type": "date",
+      "required": true,
+      "unit": "yyyy-mm-dd"
+    },
+    {
+      "name": "transferDate",
+      "label": "양도일",
+      "type": "date",
+      "required": true,
+      "unit": "yyyy-mm-dd",
+      "dependsOn": ["acquisitionDate"],
+      "validators": [
+        { "type": "after", "field": "acquisitionDate" }
+      ]
+    },
+    {
+      "name": "acquisitionPrice",
+      "label": "취득가액",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "transferPrice",
+      "label": "양도가액",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "capitalImprovements",
+      "label": "자본적지출",
+      "type": "number",
+      "required": false,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "expenses",
+      "label": "필요경비",
+      "type": "number",
+      "required": false,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "holdingYears",
+      "label": "보유기간(연)",
+      "type": "integer",
+      "required": true,
+      "unit": "years",
+      "dependsOn": ["acquisitionDate", "transferDate"],
+      "validators": [
+        {
+          "type": "calculated",
+          "method": "diffYears",
+          "with": ["acquisitionDate", "transferDate"]
+        }
+      ]
+    },
+    {
+      "name": "longTermDeductionRate",
+      "label": "장기보유특별공제율",
+      "type": "number",
+      "required": false,
+      "unit": "percent",
+      "dependsOn": ["holdingYears"],
+      "validators": [
+        {
+          "type": "max",
+          "valueFrom": "tables/2024/rates.json#longTermHoldingSpecialDeductionLimit.real_estate.maxRate"
+        },
+        {
+          "type": "bracketed",
+          "bracketsRef": "tables/2024/rates.json#longTermHoldingSpecialDeductionLimit.real_estate.brackets",
+          "inputField": "holdingYears"
+        }
+      ]
+    },
+    {
+      "name": "gain",
+      "label": "자산별 양도차익",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": [
+        "transferPrice",
+        "acquisitionPrice",
+        "capitalImprovements",
+        "expenses",
+        "longTermDeductionRate"
+      ],
+      "validators": [
+        {
+          "type": "equals",
+          "valueFrom": "(transferPrice - acquisitionPrice - capitalImprovements - expenses) * (1 - longTermDeductionRate)"
+        }
+      ]
+    }
+  ],
+  "aggregates": {
+    "totalTransferAmount": { "field": "transferPrice", "method": "sum" },
+    "totalAcquisitionAmount": { "field": "acquisitionPrice", "method": "sum" },
+    "totalExpenses": { "field": "expenses", "method": "sum" },
+    "totalGain": { "field": "gain", "method": "sum" }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "generalTaxRates": [
+    { "min": 0, "max": 12000000, "rate": 0.06 },
+    { "min": 12000000, "max": 46000000, "rate": 0.15 },
+    { "min": 46000000, "max": 88000000, "rate": 0.24 },
+    { "min": 88000000, "max": 150000000, "rate": 0.35 },
+    { "min": 150000000, "max": 300000000, "rate": 0.38 },
+    { "min": 300000000, "max": 500000000, "rate": 0.40 },
+    { "min": 500000000, "max": 1000000000, "rate": 0.42 },
+    { "min": 1000000000, "rate": 0.45 }
+  ],
+  "progressiveDeductions": [
+    { "threshold": 12000000, "deduction": 1080000 },
+    { "threshold": 46000000, "deduction": 5220000 },
+    { "threshold": 88000000, "deduction": 14900000 },
+    { "threshold": 150000000, "deduction": 19400000 },
+    { "threshold": 300000000, "deduction": 25400000 },
+    { "threshold": 500000000, "deduction": 35400000 },
+    { "threshold": 1000000000, "deduction": 65400000 }
+  ],
+  "longTermHoldingSpecialDeductionLimit": {
+    "real_estate": {
+      "maxRate": 0.80,
+      "brackets": [
+        { "minYears": 3, "maxYears": 4, "rate": 0.24 },
+        { "minYears": 5, "maxYears": 6, "rate": 0.32 },
+        { "minYears": 7, "maxYears": 8, "rate": 0.40 },
+        { "minYears": 9, "rate": 0.80 }
+      ]
+    },
+    "financial_assets": {
+      "maxRate": 0.30,
+      "brackets": [
+        { "minYears": 3, "maxYears": 5, "rate": 0.10 },
+        { "minYears": 5, "maxYears": 7, "rate": 0.20 },
+        { "minYears": 7, "rate": 0.30 }
+      ]
+    },
+    "virtual_assets": {
+      "maxRate": 0.15,
+      "brackets": [
+        { "minYears": 1, "maxYears": 3, "rate": 0.05 },
+        { "minYears": 3, "rate": 0.15 }
+      ]
+    }
+  },
+  "basicDeduction": {
+    "amount": 2500000,
+    "unit": "KRW",
+    "appliesPerReturn": true,
+    "description": "자산 종류 합산 후 1회 차감"
+  }
+}
