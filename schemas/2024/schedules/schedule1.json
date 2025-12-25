@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "별지 제84호 부표1 - 장기보유특별공제 계산명세서",
+  "type": "object",
+  "properties": {
+    "propertyType": {
+      "type": "string",
+      "enum": ["1주택", "토지", "기타"] ,
+      "lawRef": {
+        "citation": "소득세법 시행령 제154조, 제155조",
+        "link": "https://www.law.go.kr/법령/소득세법시행령"
+      },
+      "_comment": "공제율 선택 기준." 
+    },
+    "holdingPeriodYears": {
+      "type": "number",
+      "minimum": 0,
+      "lawRef": {
+        "citation": "소득세법 제95조, 시행령 제154조 제1항",
+        "link": "https://www.law.go.kr/법령/소득세법시행령"
+      }
+    },
+    "appliedRate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "lawRef": {
+        "citation": "소득세법 시행령 별표 1의2",
+        "link": "https://www.law.go.kr/법령/소득세법시행령"
+      },
+      "_comment": "장기보유특별공제율." 
+    },
+    "deductionAmount": {
+      "type": "number",
+      "minimum": 0,
+      "lawRef": {
+        "citation": "소득세법 제95조",
+        "link": "https://www.law.go.kr/법령/소득세법"
+      },
+      "_comment": "공제 산식 결과." 
+    },
+    "supportingDocs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "lawRef": {
+        "citation": "소득세법 시행규칙 제88조의3",
+        "link": "https://www.law.go.kr/법령/소득세법시행규칙"
+      },
+      "_comment": "보유기간 증빙 목록." 
+    }
+  },
+  "required": ["propertyType", "holdingPeriodYears", "appliedRate", "deductionAmount"]
+}
