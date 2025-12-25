@@ -1,0 +1,118 @@
+{
+  "schedule": "financial_assets",
+  "title": "2024년 유가증권 양도 부표",
+  "rowLabel": "security",
+  "fields": [
+    {
+      "name": "assetId",
+      "label": "종목코드",
+      "type": "string",
+      "required": true,
+      "unit": "ticker"
+    },
+    {
+      "name": "marketType",
+      "label": "시장 구분",
+      "type": "enum",
+      "required": true,
+      "unit": "market",
+      "validators": [
+        { "type": "enum", "values": ["listed", "unlisted", "foreign"] }
+      ]
+    },
+    {
+      "name": "acquisitionDate",
+      "label": "취득일",
+      "type": "date",
+      "required": true,
+      "unit": "yyyy-mm-dd"
+    },
+    {
+      "name": "transferDate",
+      "label": "양도일",
+      "type": "date",
+      "required": true,
+      "unit": "yyyy-mm-dd",
+      "dependsOn": ["acquisitionDate"],
+      "validators": [
+        { "type": "after", "field": "acquisitionDate" }
+      ]
+    },
+    {
+      "name": "quantity",
+      "label": "수량",
+      "type": "integer",
+      "required": true,
+      "unit": "shares",
+      "validators": [
+        { "type": "min", "value": 1 }
+      ]
+    },
+    {
+      "name": "acquisitionPrice",
+      "label": "취득단가",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "transferPrice",
+      "label": "양도단가",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "fees",
+      "label": "수수료",
+      "type": "number",
+      "required": false,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "taxesWithheld",
+      "label": "원천징수세액",
+      "type": "number",
+      "required": false,
+      "unit": "KRW",
+      "validators": [
+        { "type": "nonNegative" }
+      ]
+    },
+    {
+      "name": "gain",
+      "label": "양도차익",
+      "type": "number",
+      "required": true,
+      "unit": "KRW",
+      "dependsOn": [
+        "quantity",
+        "acquisitionPrice",
+        "transferPrice",
+        "fees",
+        "taxesWithheld"
+      ],
+      "validators": [
+        {
+          "type": "equals",
+          "valueFrom": "(transferPrice - acquisitionPrice) * quantity - fees - taxesWithheld"
+        }
+      ]
+    }
+  ],
+  "aggregates": {
+    "totalTransferAmount": { "field": "transferPrice", "method": "weightedSum", "weightField": "quantity" },
+    "totalAcquisitionAmount": { "field": "acquisitionPrice", "method": "weightedSum", "weightField": "quantity" },
+    "totalExpenses": { "field": "fees", "method": "sum" },
+    "totalGain": { "field": "gain", "method": "sum" }
+  }
+}
