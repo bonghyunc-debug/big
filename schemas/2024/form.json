@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "별지 제84호 본표",
+  "description": "양도소득세 과세표준확정신고 및 자진납부계산서 본표",
+  "type": "object",
+  "properties": {
+    "taxpayer": {
+      "type": "object",
+      "properties": {
+        "residentId": {
+          "type": "string",
+          "pattern": "^[0-9]{6}-[0-9]{7}$",
+          "lawRef": {
+            "citation": "소득세법 제50조, 시행령 제106조",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          },
+          "_comment": "기본공제 대상자 확인을 위한 인적사항."
+        },
+        "name": {
+          "type": "string",
+          "lawRef": {
+            "citation": "소득세법 시행규칙 제146조 [별지 제84호 서식] 작성방법 1",
+            "link": "https://www.law.go.kr/법령/소득세법시행규칙"
+          }
+        }
+      },
+      "required": ["residentId", "name"]
+    },
+    "transferIncome": {
+      "type": "object",
+      "properties": {
+        "grossProceeds": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제94조, 시행규칙 별지 제84호 작성방법 4",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          }
+        },
+        "acquisitionCost": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제97조, 시행령 제163조",
+            "link": "https://www.law.go.kr/법령/소득세법시행령"
+          }
+        },
+        "longTermDeduction": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제95조, 시행령 제154조",
+            "link": "https://www.law.go.kr/법령/소득세법시행령"
+          },
+          "_comment": "장기보유특별공제액 산출 근거."
+        }
+      },
+      "required": ["grossProceeds", "acquisitionCost", "longTermDeduction"]
+    },
+    "deductions": {
+      "type": "object",
+      "properties": {
+        "basicDeduction": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제50조, 시행령 제106조",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          }
+        },
+        "nonTaxableAmounts": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제89조, 시행령 제154조의2",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          },
+          "_comment": "비과세 양도소득 조정."
+        }
+      }
+    },
+    "taxComputation": {
+      "type": "object",
+      "properties": {
+        "taxBase": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제104조, 시행규칙 별지 제84호 작성방법 6",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          }
+        },
+        "calculatedTax": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제104조의3",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          }
+        },
+        "taxCredits": {
+          "type": "number",
+          "minimum": 0,
+          "lawRef": {
+            "citation": "소득세법 제59조의3",
+            "link": "https://www.law.go.kr/법령/소득세법"
+          },
+          "_comment": "감면/세액공제 합계 반영."
+        }
+      }
+    }
+  },
+  "required": ["taxpayer", "transferIncome", "taxComputation"]
+}

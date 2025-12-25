@@ -1,0 +1,13 @@
+{
+  "year": 2024,
+  "forms": [
+    {
+      "name": "별지 제84호 양도소득세 과세표준확정신고 및 자진납부계산서",
+      "filename": "form84-placeholder.pdf",
+      "sha256": "a434b40286f41f54a6c08fef849386d2a1af5af78b39a030f4e362807bfef620",
+      "releaseDate": "2024-03-21",
+      "sourceUrl": "https://www.nts.go.kr",
+      "notes": "국세청 배포본을 수집 가능한 환경에서 교체 필요(현재는 오프라인 플레이스홀더)."
+    }
+  ]
+}
