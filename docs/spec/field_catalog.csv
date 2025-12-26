@@ -1,0 +1,67 @@
+FieldID,Form,Page,Section,Label,DataType,Cardinality,RequiredIf,InputOrCalc,EnumKey,Min,Max,Pattern,Unit,UIPath,OutputMapping,Evidence,Notes,Gate
+RET-84-001,RET-84,1,신고구분,신고구분(예정/확정/수정/기한후),enum,single,,INPUT,reportType,,,,,steps/0.case.reportType,RET84.p1.checkbox.reportType,PDF84 p1,,Y
+RET-84-002,RET-84,1,기본,귀속연도(양도일의 연도),int,single,,CALC,,,,,,derived.taxYear,RET84.p1.text.taxYear,PDF84 p1/작성방법,,Y
+RET-84-010,RET-84,1,신고인,신고인 성명,string,single,,INPUT,,,,,,steps/1.taxpayer.name,RET84.p1.text.taxpayerName,PDF84 p1,,Y
+RET-84-011,RET-84,1,신고인,신고인 주민등록번호,string,single,,INPUT,,,,^[0-9]{6}-?[0-9]{7}$,,steps/1.taxpayer.rrn,RET84.p1.text.taxpayerRRN,PDF84 p1,로컬 저장/마스킹 출력 옵션,Y
+RET-84-012,RET-84,1,신고인,전자우편주소,string,single,,INPUT,,,,,,steps/1.taxpayer.email,RET84.p1.text.taxpayerEmail,PDF84 p1,,N
+RET-84-013,RET-84,1,신고인,전화번호,string,single,,INPUT,,,,,,steps/1.taxpayer.phone,RET84.p1.text.taxpayerPhone,PDF84 p1,,N
+RET-84-014,RET-84,1,신고인,주소,string,single,,INPUT,,,,,,steps/1.taxpayer.address,RET84.p1.text.taxpayerAddress,PDF84 p1,,Y
+RET-84-030,RET-84,1,③세율구분집계,세율구분 집계 행 목록,object,repeat,,INPUT,,,,,,derived.rateCategorySummary[],RET84.p1.table.rateCategory,PDF84 p1/작성방법 p2,자산별 세율구분코드로 집계; 주식은 동일 세율 코드 합산(작성방법 p2).,Y
+RET-84-040,RET-84,1,계산,④ 양도소득금액(합계),int,single,,CALC,,,,,,derived.main.line04_gainIncomeTotal,RET84.p1.line04,PDF84 p1/작성방법 p2,,Y
+RET-84-050,RET-84,1,계산,⑤ 기신고·결정·경정된 양도소득금액 합계,int,single,,INPUT,,,,,,steps/6.adjust.prevReportedGainIncome,RET84.p1.line05,PDF84 p1,,Y
+RET-84-060,RET-84,1,계산,⑥ 소득감면대상 소득금액(소득금액 차감방식),int,single,,CALC,,,,,,derived.main.line06_incomeDeductionBase,RET84.p1.line06,PDF84 p1/작성방법 p2,,Y
+RET-84-070,RET-84,1,계산,⑦ 양도소득기본공제,int,single,,CALC,,,,,,derived.main.line07_basicDeduction,RET84.p1.line07,PDF84 p2(작성방법 7),,Y
+RET-84-080,RET-84,1,계산,⑧ 과세표준,int,single,,CALC,,,,,,derived.main.line08_taxBase,RET84.p1.line08,PDF84 p1(⑧산식),,Y
+RET-84-090,RET-84,1,계산,⑨ 세율(표기),string,single,,CALC,,,,,,derived.main.line09_rateLabel,RET84.p1.line09,PDF84 p1/작성방법 p2,,Y
+RET-84-100,RET-84,1,계산,⑩ 산출세액,int,single,,CALC,,,,,,derived.main.line10_taxBeforeCredits,RET84.p1.line10,PDF84 p2(작성방법 8),,Y
+RET-84-110,RET-84,1,계산,⑪ 감면세액(누계),int,single,,CALC,,,,,,derived.main.line11_taxRelief,RET84.p1.line11,PDF84 p2(작성방법 9),,Y
+RET-84-115,RET-84,1,계산,⑫ 외국납부세액공제(누계),int,single,,INPUT,,,,,,steps/6.adjust.foreignTaxCredit,RET84.p1.line12,PDF84 p1,,N
+RET-84-120,RET-84,1,계산,⑬ 원천징수세액공제,int,single,,INPUT,,,,,,steps/6.adjust.withholdingCredit,RET84.p1.line13,PDF84 p1,,N
+RET-84-125,RET-84,1,계산,⑭ 연금계좌세액공제,int,single,,INPUT,,,,,,steps/6.adjust.pensionCredit,RET84.p1.line14,PDF84 p2(작성방법 11),,N
+RET-84-130,RET-84,1,계산,"⑮ 전자신고세액공제(20,000원)",int,single,,CALC,,,,,,derived.main.line15_eFilingCredit,RET84.p1.line15,PDF84 p2(작성방법 12),,Y
+RET-84-160-A,RET-84,1,가산세,⑯ 가산세 - 무(과소)신고,int,single,,CALC,,,,,,derived.penalty.underReport,RET84.p1.penalty.underReport,PDF84 p2(작성방법 13),,Y
+RET-84-160-B,RET-84,1,가산세,⑯ 가산세 - 납부지연,int,single,,CALC,,,,,,derived.penalty.latePayment,RET84.p1.penalty.latePayment,PDF84 p2(작성방법 13),,Y
+RET-84-160-C,RET-84,1,가산세,⑯ 가산세 - 기장불성실 등,int,single,,CALC,,,,,,derived.penalty.other,RET84.p1.penalty.other,PDF84 p2(작성방법 13),,N
+RET-84-160-T,RET-84,1,가산세,⑯ 가산세 - 계,int,single,,CALC,,,,,,derived.penalty.total,RET84.p1.penalty.total,PDF84 p1,,Y
+RET-84-170,RET-84,1,계산,"⑰ 기신고·결정·경정세액, 조정공제",int,single,,INPUT,,,,,,steps/6.adjust.prevTaxPaid,RET84.p1.line17,PDF84 p2(작성방법 14),,Y
+RET-84-180,RET-84,1,계산,⑱ 납부할 세액(=⑩-⑪-⑫-⑬-⑭-⑮+⑯-⑰),int,single,,CALC,,,,,,derived.main.line18_taxDue,RET84.p1.line18,PDF84 p1(⑱산식),,Y
+BP1-001,BP1,1,자산,① 세율구분(코드),enum,repeat,,INPUT,rateCategoryCode,,,,,steps/assets[].bp1.rateCode,BP1.table.rateCode,PDF84 BP1 p5-7,,Y
+BP1-003,BP1,1,자산,③ 자산종류(코드),enum,repeat,,INPUT,assetTypeCode,,,,,steps/assets[].bp1.assetTypeCode,BP1.table.assetType,PDF84 BP1 p6,,Y
+BP1-004,BP1,1,자산,④ 양도일(원인),date,repeat,,INPUT,,,,,,steps/assets[].bp1.transferDate,BP1.table.transferDate,PDF84 BP1 p5-7,,Y
+BP1-005,BP1,1,자산,⑤ 취득일(원인),date,repeat,,INPUT,,,,,,steps/assets[].bp1.acquireDate,BP1.table.acquireDate,PDF84 BP1 p5-7,,Y
+BP1-011,BP1,2,금액,⑪ 양도가액,int,repeat,,INPUT,,,,,,steps/assets[].bp1.transferPrice,BP1.table.transferPrice,PDF84 BP1 p5,,Y
+BP1-012,BP1,2,금액,⑫ 취득가액,int,repeat,,INPUT,,,,,,steps/assets[].bp1.acquirePrice,BP1.table.acquirePrice,PDF84 BP1 p5-7,,Y
+BP1-012-T,BP1,2,금액,취득가액 종류,enum,repeat,,INPUT,acquirePriceType,,,,,steps/assets[].bp1.acquirePriceType,BP1.table.acquirePriceType,PDF84 BP1 p7,실지/매매사례/감정/환산/기준시가 등,Y
+BP1-014,BP1,2,금액,⑭ 기타 필요경비(부표3 연계),int,repeat,,CALC,,,,,,derived.assets[].bp1.otherNecessaryExpense,BP1.table.otherExpense,PDF84 BP3 p15 유의사항,,Y
+BP1-015,BP1,2,금액,⑮ 과세대상양도차익,int,repeat,,CALC,,,,,,derived.assets[].bp1.taxableTransferGain,BP1.table.taxableGain,PDF84 BP1 p5,,Y
+BP1-016,BP1,2,장특공,⑯ 장기보유특별공제 코드,enum,repeat,,INPUT,ltDeductionCode,,,,,steps/assets[].bp1.ltDeductionCode,BP1.table.ltCode,PDF84 BP1 p7(코드표),,Y
+BP1-018,BP1,2,장특공,⑱ 양도소득금액(자산별),int,repeat,,CALC,,,,,,derived.assets[].bp1.gainIncome,BP1.table.gainIncome,PDF84 BP1 p5,,Y
+BP1-022,BP1,3,기준시가,◯22 양도시 기준시가-건물,int,repeat,,INPUT,,,,,,steps/assets[].bp1.stdValueTransferBuilding,BP1.std.transfer.building,PDF84 BP1 p7,,N
+BP1-023,BP1,3,기준시가,◯23 양도시 기준시가-토지,int,repeat,,INPUT,,,,,,steps/assets[].bp1.stdValueTransferLand,BP1.std.transfer.land,PDF84 BP1 p7,,N
+BP1-024,BP1,3,기준시가,◯24 취득시 기준시가-건물,int,repeat,,INPUT,,,,,,steps/assets[].bp1.stdValueAcquireBuilding,BP1.std.acquire.building,PDF84 BP1 p7,,N
+BP1-025,BP1,3,기준시가,◯25 취득시 기준시가-토지,int,repeat,,INPUT,,,,,,steps/assets[].bp1.stdValueAcquireLand,BP1.std.acquire.land,PDF84 BP1 p7,,N
+BP2-001,BP2,1,주식,① 종목명,string,repeat,,INPUT,,,,,,steps/assets[].bp2.issuerName,BP2.table.issuerName,PDF84 BP2 p8-10,,Y
+BP2-002,BP2,1,주식,② 종목코드/사업자등록번호/ISIN,string,repeat,,INPUT,,,,,,steps/assets[].bp2.securityId,BP2.table.securityId,PDF84 BP2 p9,,Y
+BP2-003,BP2,1,주식,③ 국내/국외 구분 코드,enum,repeat,,INPUT,stockDomesticForeign,,,,,steps/assets[].bp2.domesticForeign,BP2.table.domesticForeign,PDF84 BP2 p9,,Y
+BP2-004,BP2,1,주식,④ 주식등 종류 코드,enum,repeat,,INPUT,stockTypeCode,,,,,steps/assets[].bp2.stockTypeCode,BP2.table.stockTypeCode,PDF84 BP2 p9,,Y
+BP2-005,BP2,1,주식,⑤ 양도유형 코드,enum,repeat,,INPUT,stockTransferType,,,,,steps/assets[].bp2.transferType,BP2.table.transferType,PDF84 BP2 p9,,Y
+BP2-006,BP2,1,주식,⑥ 취득유형 코드,enum,repeat,,INPUT,stockAcquireType,,,,,steps/assets[].bp2.acquireType,BP2.table.acquireType,PDF84 BP2 p9,,Y
+BP2-007,BP2,1,주식,⑦ 수량,number,repeat,,INPUT,,0,,,,steps/assets[].bp2.quantity,BP2.table.quantity,PDF84 BP2 p8,,Y
+BP2-008,BP2,2,주식,⑧ 양도일자,date,repeat,,INPUT,,,,,,steps/assets[].bp2.transferDate,BP2.table.transferDate,PDF84 BP2 p8,,Y
+BP2-010,BP2,2,주식,⑩ 양도가액,int,repeat,,INPUT,,,,,,steps/assets[].bp2.transferPrice,BP2.table.transferPrice,PDF84 BP2 p9,,Y
+BP2-013,BP2,2,주식,⑬ 취득가액,int,repeat,,INPUT,,,,,,steps/assets[].bp2.acquirePrice,BP2.table.acquirePrice,PDF84 BP2 p9,,Y
+BP2-014,BP2,2,주식,⑭ 필요경비,int,repeat,,INPUT,,,,,,steps/assets[].bp2.necessaryExpense,BP2.table.necessaryExpense,PDF84 BP2 p9,,Y
+BP2-015,BP2,2,주식,⑮ 과세대상 양도소득금액,int,repeat,,CALC,,,,,,derived.assets[].bp2.taxableGainIncome,BP2.table.taxableGainIncome,PDF84 BP2 p8,,Y
+BP2-018,BP2,2,주식,⑱ 과세이연 신청(여/부),enum,repeat,,INPUT,taxDeferralApply,,,,,steps/assets[].bp2.taxDeferralApply,BP2.table.taxDeferralApply,PDF84 BP2 p9(작성방법 14),,N
+BP2-2-001,BP2-2,1,파생,① 과세대상연도,int,single,,INPUT,,,,,,steps/derivatives.taxYear,BP2_2.header.taxYear,PDF84 BP2의2 p11-12,,Y
+BP2-2-002,BP2-2,1,파생,② 세율구분코드(80/81),enum,repeat,,INPUT,derivativeRateCode,,,,,steps/derivatives.rows[].rateCode,BP2_2.table.rateCode,PDF84 BP2의2 p12,,Y
+BP2-2-015,BP2-2,1,파생,⑮ 양도소득금액(종목별),int,repeat,,CALC,,,,,,derived.derivatives.rows[].gainIncome,BP2_2.table.gainIncome,PDF84 BP2의2 p12(산식),,Y
+BP3-111,BP3-1,1,취득가액,111 매입가액,int,repeat,,INPUT,,,,,,steps/assets[].bp3.rows[111].amount,BP3_1.row111.amount,PDF84 BP3 p14-15,,N
+BP3-112,BP3-1,1,취득가액,112 취득세,int,repeat,,INPUT,,,,,,steps/assets[].bp3.rows[112].amount,BP3_1.row112.amount,PDF84 BP3 p14,,N
+BP3-113,BP3-1,1,취득가액,113 등록세,int,repeat,,INPUT,,,,,,steps/assets[].bp3.rows[113].amount,BP3_1.row113.amount,PDF84 BP3 p14,,N
+BP3-114,BP3-1,1,취득가액,114 법무사비용,int,repeat,,INPUT,,,,,,steps/assets[].bp3.rows[114].amount,BP3_1.row114.amount,PDF84 BP3 p14,,N
+BP3-115,BP3-1,1,취득가액,115 취득중개수수료,int,repeat,,INPUT,,,,,,steps/assets[].bp3.rows[115].amount,BP3_1.row115.amount,PDF84 BP3 p14,,N
+BP3-116,BP3-1,1,취득가액,116 기타,int,repeat,,INPUT,,,,,,steps/assets[].bp3.rows[116].amount,BP3_1.row116.amount,PDF84 BP3 p14,,N
+BP3-999-A,BP3-1,1,합계,⑤ 계(취득가액 합계),int,repeat,,CALC,,,,,,derived.assets[].bp3.acquireTotal,BP3_1.total.acquire,PDF84 BP3 p15 유의사항 2,,Y
+BP3-999-B,BP3-1,1,합계,⑬ 기타 필요경비 계,int,repeat,,CALC,,,,,,derived.assets[].bp3.expenseTotal,BP3_1.total.expense,PDF84 BP3 p15 유의사항 3,,Y
+BP3-EVID-001,BP3-1,2,증빙,증빙종류(코드 01~),enum,repeat,,INPUT,evidenceTypeCode,,,,,steps/assets[].bp3.rows[].evidenceType,BP3_1.rows[].evidenceType,PDF84 BP3 p15(증빙종류코드),,N

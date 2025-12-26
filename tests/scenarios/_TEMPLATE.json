@@ -1,0 +1,63 @@
+{
+  "scenarioId": "S-REAL-001",
+  "title": "토지(일반세율) + 장특공(표1)",
+  "case": {
+    "report": {
+      "reportType": "PRELIM",
+      "reportDate": "2025-12-26",
+      "efile": false
+    },
+    "taxpayer": {
+      "name": "홍길동",
+      "rrn": "900101-1234567",
+      "address": "서울시 ..."
+    },
+    "assets": [
+      {
+        "kind": "REAL_ESTATE",
+        "bp1": {
+          "rateCode": "1-10",
+          "assetTypeCode": "1",
+          "transferDate": "2024-06-30",
+          "acquireDate": "2010-06-30",
+          "transferPrice": 500000000,
+          "acquirePriceType": "ACTUAL",
+          "acquirePrice": 200000000,
+          "otherNecessaryExpense": 10000000,
+          "ltDeductionCode": "02",
+          "userFlags": {
+            "isHighValueHouse": false,
+            "isUnregistered": false,
+            "isNonBusinessLand": false,
+            "isMultiHomeSurtax": false
+          }
+        },
+        "bp3": {
+          "rows": []
+        },
+        "reliefs": []
+      }
+    ],
+    "penalties": {
+      "lateFiling": false,
+      "latePaymentDays": 0,
+      "underReport": false,
+      "fraud": false
+    }
+  },
+  "expect": {
+    "derived": {
+      "main": {
+        "line08_taxBase": 0,
+        "line10_taxBeforeCredits": 0,
+        "line18_taxDue": 0
+      }
+    }
+  },
+  "evidence": [
+    {
+      "note": "소득세법/시행령/국세청 안내 링크"
+    }
+  ],
+  "notes": "실제 기대값은 룰팩 구현 후 산출하여 고정"
+}

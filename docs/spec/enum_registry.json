@@ -1,0 +1,634 @@
+{
+  "meta": {
+    "asOf": "2025-12-26",
+    "sources": [
+      {
+        "type": "NTS_FORM_GUIDE_PDF",
+        "note": "업로드된 별지 제84호서식 작성방법(PDF)"
+      },
+      {
+        "type": "NTS_FORMS_PAGE",
+        "url": "https://www.nts.go.kr/tax/sub/1.양도소득세%20신고서식%20및%20첨부서류%20다운받기.html"
+      },
+      {
+        "type": "LAW_GO_KR",
+        "note": "소득세법/시행령/국세기본법 등"
+      }
+    ],
+    "warning": "본 enum_registry는 초기 시드입니다. 실제 구현 시 국세청 최신 서식/홈택스 코드목록과 대조하여 업데이트해야 합니다."
+  },
+  "reportType": [
+    {
+      "code": "PRELIM",
+      "label": "예정신고"
+    },
+    {
+      "code": "FINAL",
+      "label": "확정신고"
+    },
+    {
+      "code": "AMEND",
+      "label": "수정신고"
+    },
+    {
+      "code": "LATE",
+      "label": "기한후신고"
+    }
+  ],
+  "rateCategoryCode": [
+    {
+      "code": "1-10",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-11",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-15",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-20",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-21",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-23",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-30",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-31",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-35",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-36",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-37",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-38",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-39",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-40",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-46",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-47",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-48",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-49",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-50",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-51",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-52",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-53",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-54",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-55",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-56",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-57",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-58",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-61",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-62",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-63",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-70",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-71",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-73",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-80",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-81",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-82",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-83",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-84",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-85",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-86",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-87",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-88",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-89",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-92",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-94",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "1-95",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    },
+    {
+      "code": "2-10",
+      "label": "서식 작성방법의 세율구분코드 표 참조",
+      "effectiveFrom": "2000-01-01",
+      "effectiveTo": ""
+    }
+  ],
+  "assetTypeCode": [
+    {
+      "code": "1",
+      "label": "토지"
+    },
+    {
+      "code": "2",
+      "label": "주택"
+    },
+    {
+      "code": "3",
+      "label": "일반주택"
+    },
+    {
+      "code": "4",
+      "label": "기타건물"
+    },
+    {
+      "code": "5",
+      "label": "지상권"
+    },
+    {
+      "code": "6",
+      "label": "전세권 등"
+    },
+    {
+      "code": "7",
+      "label": "등기된 부동산임차권"
+    },
+    {
+      "code": "24",
+      "label": "부동산을 취득할 수 있는 권리"
+    },
+    {
+      "code": "25",
+      "label": "조합원입주권"
+    },
+    {
+      "code": "26",
+      "label": "분양권"
+    },
+    {
+      "code": "8",
+      "label": "특정주식"
+    },
+    {
+      "code": "14",
+      "label": "영업권"
+    },
+    {
+      "code": "15",
+      "label": "시설물이용권"
+    },
+    {
+      "code": "16",
+      "label": "이축권"
+    },
+    {
+      "code": "23",
+      "label": "부동산과다보유법인주식"
+    },
+    {
+      "code": "17",
+      "label": "신탁수익권"
+    }
+  ],
+  "acquirePriceType": [
+    {
+      "code": "ACTUAL",
+      "label": "실지거래가액"
+    },
+    {
+      "code": "COMPARABLE",
+      "label": "매매사례가액"
+    },
+    {
+      "code": "APPRAISAL",
+      "label": "감정가액"
+    },
+    {
+      "code": "CONVERTED",
+      "label": "환산취득가액"
+    },
+    {
+      "code": "STANDARD",
+      "label": "기준시가"
+    },
+    {
+      "code": "FOREIGN_GOV",
+      "label": "국외자산 해당정부평가액"
+    }
+  ],
+  "ltDeductionCode": [
+    {
+      "code": "01",
+      "label": "1세대1주택"
+    },
+    {
+      "code": "02",
+      "label": "그 외"
+    },
+    {
+      "code": "03",
+      "label": "배제"
+    },
+    {
+      "code": "04",
+      "label": "장기일반민간임대주택(조특법97조의3)"
+    },
+    {
+      "code": "05",
+      "label": "장기임대주택(조특법97조의4)"
+    },
+    {
+      "code": "06",
+      "label": "지방미분양주택(조특법98조의2)"
+    }
+  ],
+  "stockDomesticForeign": [
+    {
+      "code": "1",
+      "label": "국내"
+    },
+    {
+      "code": "2",
+      "label": "국외"
+    }
+  ],
+  "stockTransferType": [
+    {
+      "code": "1",
+      "label": "양도"
+    },
+    {
+      "code": "2",
+      "label": "국외전출(의제양도)"
+    }
+  ],
+  "stockAcquireType": [
+    {
+      "code": "1",
+      "label": "매매"
+    },
+    {
+      "code": "2",
+      "label": "수용"
+    },
+    {
+      "code": "3",
+      "label": "협의매수"
+    },
+    {
+      "code": "4",
+      "label": "교환"
+    },
+    {
+      "code": "5",
+      "label": "공매"
+    },
+    {
+      "code": "6",
+      "label": "경매"
+    },
+    {
+      "code": "7",
+      "label": "상속"
+    },
+    {
+      "code": "8",
+      "label": "증여"
+    },
+    {
+      "code": "9",
+      "label": "신축"
+    },
+    {
+      "code": "10",
+      "label": "출자/기타"
+    }
+  ],
+  "stockTypeCode": [
+    {
+      "code": "31",
+      "label": "비상장주식등(주권 등 비상장법인)"
+    },
+    {
+      "code": "32",
+      "label": "비상장주식등(그 밖의 법인)"
+    },
+    {
+      "code": "33",
+      "label": "비상장주식등(중소기업)"
+    },
+    {
+      "code": "34",
+      "label": "상장주식(대주주 등)"
+    },
+    {
+      "code": "35",
+      "label": "상장주식(소액주주)"
+    },
+    {
+      "code": "43",
+      "label": "국외주식(세율 20% 등)"
+    },
+    {
+      "code": "71",
+      "label": "국외현지법인 주식(세율 20% 등)"
+    }
+  ],
+  "taxDeferralApply": [
+    {
+      "code": "Y",
+      "label": "여"
+    },
+    {
+      "code": "N",
+      "label": "부"
+    }
+  ],
+  "derivativeRateCode": [
+    {
+      "code": "80",
+      "label": "파생상품(’18.3.31. 이전) 5%"
+    },
+    {
+      "code": "81",
+      "label": "파생상품(’18.4.1. 이후) 10%"
+    }
+  ],
+  "bp3AcquireCostCode": [
+    {
+      "code": "111",
+      "label": "매입가액"
+    },
+    {
+      "code": "112",
+      "label": "취득세"
+    },
+    {
+      "code": "113",
+      "label": "등록세"
+    },
+    {
+      "code": "114",
+      "label": "법무사비용"
+    },
+    {
+      "code": "115",
+      "label": "취득중개수수료"
+    },
+    {
+      "code": "116",
+      "label": "기타"
+    }
+  ],
+  "bp3ExpenseCode": [
+    {
+      "code": "210",
+      "label": "자본적지출액"
+    },
+    {
+      "code": "220",
+      "label": "양도비(중개수수료 등)"
+    },
+    {
+      "code": "250",
+      "label": "양도소득세 신고서 작성비용"
+    },
+    {
+      "code": "260",
+      "label": "변호사비용"
+    },
+    {
+      "code": "270",
+      "label": "공증수수료"
+    },
+    {
+      "code": "280",
+      "label": "인지대"
+    },
+    {
+      "code": "290",
+      "label": "기타"
+    }
+  ],
+  "evidenceTypeCode": [
+    {
+      "code": "01",
+      "label": "세금계산서"
+    },
+    {
+      "code": "02",
+      "label": "계산서"
+    },
+    {
+      "code": "03",
+      "label": "신용카드"
+    },
+    {
+      "code": "04",
+      "label": "현금영수증"
+    },
+    {
+      "code": "99",
+      "label": "기타/미제출"
+    }
+  ],
+  "reliefCodes": {
+    "todo": "홈택스 ‘공제감면코드 조회’ 및 국세청 안내자료에서 최신 목록을 추출하여 JSON으로 탑재",
+    "versioning": "rules/relief/YYYYMMDD.json"
+  }
+}

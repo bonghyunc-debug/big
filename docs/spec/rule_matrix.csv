@@ -1,0 +1,36 @@
+RuleID,Type,Scope,Trigger,InputFields,OutputFields,FormulaOrConstraint,Rounding,Limit,EffectiveFrom,EffectiveTo,Evidence,TestID,ImplRef,Notes,Gate
+CALC-COM-001,CALC,GLOBAL,케이스 생성/자산 저장,"BP1-004,BP2-008",RET-84-002,과세연도 = (가장 빠른) 양도일의 연도(YYYY). 자산별 양도일이 서로 다른 연도면 오류.,,,,,PDF84 p1; 과세연도 정의,T-COM-001,,,Y
+VAL-COM-001,VAL,GLOBAL,모든 금액 계산/입력,*,*,모든 금액은 원화 정수(원단위). 소수점 허용 금지. 라운딩은 원단위 반올림(또는 절사) 정책을 룰팩에 고정.,KRW_INT,,,,PDF84 작성방법(원단위 표시),T-COM-VAL-001,,,Y
+CALC-RATE-010,CALC,ASSET,자산 저장/세율코드 변경,"BP1-001,BP2-004,BP2-2-002","derived.rateKey,RET-84-090","세율구분코드 → (1) 표기 세율라벨, (2) 계산용 세율테이블 키(기본누진/단일/중과 등) 매핑. 룰팩(JSON)에서 로드.",,,,,PDF84 p3-4(세율구분코드),T-RATE-010,,,Y
+CALC-RATE-020,CALC,ASSET,취득일/양도일 입력,"BP1-004,BP1-005,BP1-003,BP1-001",derived.assets[].rateApplied,단기보유(보유기간 1년 미만/1~2년) 대상인 경우 법령에 따라 단기세율 자동 적용(자산유형/주택 여부/시행일 룰팩 반영).,,,,,소득세법 제104조(양도소득세율) 및 국세청 세율 안내,T-RATE-020,,보유기간 산정 규칙(연/월) 포함.,Y
+VAL-RATE-021,VAL,ASSET,취득일/양도일 입력,"BP1-004,BP1-005","BP1-004,BP1-005",양도일 >= 취득일. 동일일 양도 허용 여부는 룰팩. 보유기간 계산은 시행령 규정에 따라 연/월/일 단위 처리.,,,,,"소득세법 시행령 보유기간 산정(연미만은 월수, 일수는 1월)",T-RATE-VAL-021,,,Y
+CALC-RATE-030,CALC,ASSET,미등기양도=예,userFlags.unregistered,derived.assets[].rateApplied,미등기 양도 자산은 법령에 따른 단일세율 적용(예: 70%). 대상 자산 범위/예외는 룰팩.,,,,,소득세법 제104조 및 국세청 안내,T-RATE-030,,,Y
+VAL-DED-020,VAL,GLOBAL,기본공제 계산,"userFlags.unregistered,derived.assets[]",RET-84-070,미등기 양도 자산은 양도소득기본공제 적용 제외.,,,,,PDF84 작성방법(기본공제 유의사항),T-DED-020,,,Y
+CALC-RATE-040,CALC,ASSET,비사업용토지=예,"userFlags.nonBusinessLand,BP1-001",derived.assets[].rateApplied,비사업용토지 중과세율(누진 가산) 적용. 가산폭/표는 룰팩으로 분리.,,,,,국세청 세율표/법령,T-RATE-040,,,Y
+CALC-RATE-050,CALC,ASSET,다주택중과대상=예,"userFlags.multiHomeSurtax,BP1-004",derived.assets[].rateApplied,조정대상지역 다주택 중과/한시배제 기간을 룰팩으로 처리(양도일 기준).,,,,,"국세청 세율 안내(기간), 소득세법 제104조",T-RATE-050,,,Y
+CALC-BP3-111,CALC,ASSET,부표3 입력 변경,BP3-111..BP3-116,BP3-999-A,취득가액 합계 = Σ(111~116).,KRW_INT,,,,PDF84 부표3 유의사항 2,T-BP3-111,,,Y
+CALC-BP3-210,CALC,ASSET,부표3 입력 변경,BP3 expense codes,BP3-999-B,기타필요경비 합계 = Σ(필요경비 코드군).,KRW_INT,,,,PDF84 부표3 유의사항 3,T-BP3-210,,,Y
+OUT-LINK-001,OUT,ASSET,출력/계산,"BP3-999-A,BP3-999-B","BP1-012,BP1-014","부표3 취득가액 합계는 부표1 취득가액으로, 필요경비 합계는 부표1 기타필요경비로 자동 이월.",,,,,PDF84 부표3 유의사항 2~3,T-OUT-LINK-001,,,Y
+CALC-BP1-400,CALC,ASSET,취득가액종류=환산취득가액,"BP1-011,BP1-022,BP1-023,BP1-024,BP1-025",BP1-012,환산취득가액 = 양도가액 × (취득시 기준시가 합 / 양도시 기준시가 합). 합=건물+토지.,KRW_INT,,,,PDF84 부표1 작성방법(환산취득가액 산식),T-BP1-400,,,Y
+VAL-BP1-401,VAL,ASSET,환산취득가액 계산,"BP1-022,BP1-023","BP1-022,BP1-023",양도시 기준시가 합(건물+토지)이 0이면 오류.,,,,,산식 분모 0 방지,T-BP1-VAL-401,,,Y
+CALC-BP1-120,CALC,ASSET,고가주택(12억 초과) + 1세대1주택 비과세 판정값=예,"BP1-011,derived.assets[].transferGainTotal",derived.assets[].bp1.taxableTransferGain,과세대상양도차익 = 전체양도차익 × (양도가액-12억) / 양도가액.,KRW_INT,,,,국세청 세액계산요령(고가주택 안분),T-BP1-120,,,Y
+CALC-BP1-220,CALC,ASSET,고가주택 안분 적용,"derived.assets[].ltDeductionTotal,BP1-011",derived.assets[].ltDeductionTaxable,과세대상 장특공 = 전체 장특공 × (양도가액-12억) / 양도가액.,KRW_INT,,,,국세청 세액계산요령(고가주택 장특공 안분),T-BP1-220,,,Y
+CALC-LT-001,CALC,ASSET,장특공 코드/보유·거주기간 입력,"BP1-016,userInputs.holdingPeriod,userInputs.residencePeriod",derived.assets[].ltDeductionRate,장특공율 = (표1/표2/배제 등) 코드에 따라 룰팩 테이블에서 산정.,,,,,"소득세법 제95조(표1/표2), 시행령(보유/거주 기간)",T-LT-001,,,Y
+CALC-BP1-200,CALC,ASSET,장특공 코드=일반,"derived.assets[].taxableTransferGain,derived.assets[].ltDeductionRate",derived.assets[].ltDeductionAmount,장특공액 = 과세대상양도차익 × 장특공율.,KRW_INT,,,,소득세법 제95조,T-LT-200,,,Y
+CALC-BP1-100,CALC,ASSET,금액 입력,"BP1-011,BP1-012,BP1-014",derived.assets[].transferGainTotal,전체양도차익 = 양도가액 - 취득가액 - 기타필요경비.,KRW_INT,,,,부표1 산식,T-BP1-100,,,Y
+CALC-BP1-300,CALC,ASSET,장특공 계산 후,"derived.assets[].taxableTransferGain,derived.assets[].ltDeductionTaxable",BP1-018,양도소득금액(자산별) = 과세대상양도차익 - 과세대상 장특공 - 기타 조정(소득차감형 감면 등).,KRW_INT,,,,부표1 구조,T-BP1-300,,,Y
+CALC-BP2-100,CALC,ASSET,주식 금액 입력,"BP2-010,BP2-013,BP2-014",BP2-015,주식 양도소득금액 = 양도가액 - 취득가액 - 필요경비.,KRW_INT,,,,부표2 산식,T-BP2-100,,,Y
+CALC-DERIV-100,CALC,DERIV,파생 종목 입력,deriv.08..14,BP2-2-015,양도소득금액 = (⑧-⑨-⑪-⑫+⑬-⑭) (서식 산식 그대로).,KRW_INT,,,,PDF84 부표2의2 산식,T-DERIV-100,,,Y
+CALC-DED-001,CALC,GLOBAL,합산 계산,derived.assets[],RET-84-070,"양도소득기본공제는 유형(국내/국외/주식/파생 등)별 250만원 버킷을 적용(최대 1,250만원)하고, 동일 버킷 내에서는 먼저 양도한 자산부터 배분.",KRW_INT,,,,PDF84 작성방법(기본공제/버킷),T-DED-001,,,Y
+CALC-RET-040,CALC,GLOBAL,자산 합산,"BP1-018,BP2-015,BP2-2-015",RET-84-040,④ 양도소득금액 = 모든 자산별 양도소득금액 합계(세율구분별 집계 포함).,KRW_INT,,,,PDF84 작성방법,T-RET-040,,,Y
+CALC-RET-080,CALC,GLOBAL,메인 계산,"RET-84-040,RET-84-050,RET-84-060,RET-84-070",RET-84-080,⑧ 과세표준 = (④ - ⑤ - ⑥) - ⑦.,KRW_INT,,,,메인 서식 산식,T-RET-080,,,Y
+CALC-RET-100A,CALC,GLOBAL,산출세액 계산,RET-84-080,derived.main.taxA,A(가) = 과세표준 합계에 소득세법 제55조 누진세율 적용(룰팩 테이블).,KRW_INT,,,,PDF84 작성방법 8; 소득세법 제55조,T-RET-100A,,,Y
+CALC-RET-100B,CALC,GLOBAL,산출세액 계산,"derived.assets[].rateApplied,derived.assets[].taxBaseByAsset",derived.main.taxB,B(나) = 자산별 산출세액 합계(소득세법 제104조 체계).,KRW_INT,,,,PDF84 작성방법 8; 소득세법 제104조,T-RET-100B,,,Y
+CALC-RET-100,CALC,GLOBAL,산출세액 결정,"derived.main.taxA,derived.main.taxB",RET-84-100,"⑩ 산출세액 = max(A, B). 감면세액 차감 전/후 비교 규칙은 룰팩으로(서식/홈택스와 일치).",KRW_INT,,,,PDF84 작성방법 8(가/나),T-RET-100,,,Y
+CALC-RELIEF-001,CALC,GLOBAL,감면 입력,userReliefs[],"RET-84-110,RET-84-060","감면은 (1) 세액감면방식, (2) 소득차감방식으로 분리. 사용자가 코드/율/대상금액을 확정하면 앱이 안분/한도/중복 검증 및 메인/부표 반영.",,,,,PDF84 부표1 ⑲~㉑ 및 작성방법; 조특법,T-RELIEF-001,,,Y
+CALC-RET-150,CALC,GLOBAL,전자신고 공제,"userFlags.efile,RET-84-100,RET-84-110,RET-84-120..",RET-84-130,"전자신고세액공제 = 20,000원(단, 차감 후 잔액 초과 불가; 대리신고 제외).",,<= 산출세액-기공제,,,PDF84 작성방법 12,T-RET-150,,,Y
+CALC-PEN-010,CALC,GLOBAL,가산세 계산,userPenaltyInputs,"RET-84-160-T,RET-84-160-A,RET-84-160-B","무신고/과소신고/납부지연 등 가산세를 법령+작성방법 기준으로 계산하고, 기한후/수정 감면(국기법 48조)을 적용.",,,,,PDF84 작성방법 13; 국세기본법 제48조; 국세기본법 시행령 제27조의4,T-PEN-010,,,Y
+CALC-RET-180,CALC,GLOBAL,최종세액 계산,"RET-84-100,RET-84-110,RET-84-130,RET-84-160-T,RET-84-170",RET-84-180,⑱ 납부할 세액 = ⑩ - ⑪ - ⑫ - ⑬ - ⑭ - ⑮ + ⑯ - ⑰,KRW_INT,,,,메인 서식 산식,T-RET-180,,,Y
+CALC-GIFT-159,CALC,ASSET,취득원인=부담부증여,"gift.assessedValue,gift.debtAmount,gift.giftValue,acquireCostBase",derived.assets[].giftSalePortion.*,"양도로 보는 부분(채무액 상당)에 대해 시행령 제159조 산식으로 양도가액/취득가액 안분: 양도가액=A×(B/C), 취득가액=A×(B/C) (A는 평가가액 또는 실지가 등).",KRW_INT,,,,소득세법 제88조(양도 정의); 소득세법 시행령 제159조,T-GIFT-159,,,Y
+CALC-CARRY-972,CALC,ASSET,증여취득 + 이월과세 대상=예,"gift.fromSpouseOrLineal,transferDate,giftDate,donorAcquireCost,donationTaxPaid",derived.assets[].acquirePrice,"소득세법 제97조의2 적용: (1) 취득가액은 증여자의 취득 당시 금액(원칙), (2) 납부(또는 납부할) 증여세 상당액은 필요경비 산입, (3) 적용기간(10년/1년 등)은 자산유형별.",,,,,소득세법 제97조의2,T-CARRY-972,,,Y
+OUT-PDF-001,OUT,GLOBAL,PDF 출력,case.assets[],pdf.pages[],자산 유형에 따라 메인+해당 부표 페이지만 포함(부표3 사용 시 포함). 첨부서류 체크리스트 페이지 포함.,,,,,제품 요구사항,T-OUT-PDF-001,,,Y
