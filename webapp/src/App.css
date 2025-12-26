@@ -868,3 +868,169 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* New Features - 홈택스 수준 개선 */
+
+/* Form Section */
+.form-section {
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.form-section h5 {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
+}
+
+/* Asset Card Header Actions */
+.asset-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Deadline Badge */
+.deadline-badge {
+  font-size: var(--font-size-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.deadline-badge.ok {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.deadline-badge.warning {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.deadline-badge.overdue {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+/* Calculated Info */
+.calculated-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  margin: var(--space-sm) 0;
+  font-size: var(--font-size-sm);
+}
+
+.calculated-info .info-label {
+  color: var(--color-text-secondary);
+}
+
+.calculated-info .info-value {
+  font-weight: 600;
+}
+
+.calculated-info .info-warning {
+  color: var(--color-warning);
+  font-size: var(--font-size-xs);
+}
+
+/* Suggestion Box */
+.suggestion-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: #E3F2FD;
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-xs);
+}
+
+.suggestion-text {
+  font-size: var(--font-size-sm);
+  color: #1565C0;
+}
+
+/* Checklist */
+.checklist-box {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin: var(--space-sm) 0;
+}
+
+.checklist-item {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.checklist-item:last-child {
+  border-bottom: none;
+}
+
+.checklist-question {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--space-xs);
+}
+
+.checklist-question .required {
+  color: var(--color-danger);
+  margin-right: var(--space-xs);
+}
+
+.checklist-help {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Link Button */
+.link-button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--space-xs) 0;
+  text-decoration: none;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+/* Sub Field (nested inputs) */
+.sub-field {
+  margin-left: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+}
+
+/* Input styling */
+.input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* Small text for descriptions */
+small {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
