@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "소득세법 제103조, 별지제84호서식 작성방법"
+  },
+  "buckets": {
+    "description": "양도소득기본공제 버킷별 한도",
+    "domestic": {
+      "amount": 2500000,
+      "label": "국내자산",
+      "types": ["land", "building", "rights", "membership"]
+    },
+    "stock": {
+      "amount": 2500000,
+      "label": "주식등",
+      "types": ["stock_listed", "stock_unlisted", "stock_foreign"]
+    },
+    "derivative": {
+      "amount": 2500000,
+      "label": "파생상품",
+      "types": ["derivative"]
+    },
+    "foreign": {
+      "amount": 2500000,
+      "label": "국외자산",
+      "types": ["foreign_real_estate", "foreign_other"]
+    },
+    "other": {
+      "amount": 2500000,
+      "label": "기타자산",
+      "types": ["trust_beneficiary", "business_goodwill", "facility_rights"]
+    }
+  },
+  "maxTotal": 12500000,
+  "excludeConditions": {
+    "unregistered": {
+      "exclude": true,
+      "note": "미등기양도자산은 기본공제 적용 제외"
+    }
+  },
+  "allocationRule": {
+    "method": "FIFO_BY_TRANSFER_DATE",
+    "note": "동일 버킷 내에서는 먼저 양도한 자산부터 기본공제 배분"
+  }
+}

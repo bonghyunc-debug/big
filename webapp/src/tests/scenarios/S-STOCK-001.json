@@ -1,0 +1,65 @@
+{
+  "scenarioId": "S-STOCK-001",
+  "description": "비상장주식(중소기업) 양도 - 10% 세율",
+  "case": {
+    "reportType": "FINAL",
+    "taxYear": 2024,
+    "taxpayer": {
+      "name": "이영희",
+      "rrn": "850520-2234567",
+      "address": "경기도 성남시 분당구 판교로 200"
+    },
+    "bp1Assets": [],
+    "bp2Assets": [
+      {
+        "id": "test-stock-001",
+        "issuerName": "테크스타트업(주)",
+        "securityId": "123-45-67890",
+        "domesticForeign": "1",
+        "stockTypeCode": "33",
+        "transferType": "1",
+        "acquireType": "1",
+        "quantity": 10000,
+        "transferDate": "2024-08-15",
+        "transferPrice": 500000000,
+        "acquirePrice": 100000000,
+        "necessaryExpense": 5000000
+      }
+    ],
+    "reliefs": [],
+    "adjustments": {
+      "prevReportedGainIncome": 0,
+      "foreignTaxCredit": 0,
+      "withholdingCredit": 0,
+      "pensionCredit": 0,
+      "prevTaxPaid": 0
+    },
+    "flags": {
+      "eFiling": true,
+      "proxyFiling": false
+    }
+  },
+  "expect": {
+    "assetResults": [
+      {
+        "assetId": "test-stock-001",
+        "gainIncome": 395000000,
+        "rateCode": "1-61",
+        "rateType": "flat",
+        "rateValue": 10
+      }
+    ],
+    "mainResult": {
+      "line04_gainIncomeTotal": 395000000,
+      "line07_basicDeduction": 2500000,
+      "line08_taxBase": 392500000,
+      "line10_taxBeforeCredits": 39250000,
+      "line15_eFilingCredit": 20000,
+      "line18_taxDue": 39230000
+    }
+  },
+  "evidence": [
+    "소득세법 제104조 (중소기업 주식 10%)"
+  ],
+  "notes": "중소기업 비상장주식, 10% 단일세율"
+}

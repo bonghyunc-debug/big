@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "소득세법 제95조, 시행령 제159조의4, 별표 1/2"
+  },
+  "table1": {
+    "description": "장기보유특별공제 표1 (1세대1주택 외)",
+    "excludeAssetTypes": ["stock", "derivative", "right_intangible"],
+    "rates": {
+      "3": 6,
+      "4": 8,
+      "5": 10,
+      "6": 12,
+      "7": 14,
+      "8": 16,
+      "9": 18,
+      "10": 20,
+      "11": 22,
+      "12": 24,
+      "13": 26,
+      "14": 28,
+      "15": 30
+    },
+    "maxRate": 30,
+    "minYears": 3
+  },
+  "table2": {
+    "description": "장기보유특별공제 표2 (1세대1주택)",
+    "holdingRates": {
+      "3": 12,
+      "4": 16,
+      "5": 20,
+      "6": 24,
+      "7": 28,
+      "8": 32,
+      "9": 36,
+      "10": 40
+    },
+    "residenceRates": {
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "5": 20,
+      "6": 24,
+      "7": 28,
+      "8": 32,
+      "9": 36,
+      "10": 40
+    },
+    "maxHoldingRate": 40,
+    "maxResidenceRate": 40,
+    "maxTotalRate": 80,
+    "minHoldingYears": 3,
+    "minResidenceYears": 2
+  },
+  "specialCases": {
+    "longTermRental": {
+      "code": "04",
+      "description": "장기일반민간임대주택(조특법97조의3)",
+      "rates": {
+        "6": 2,
+        "7": 4,
+        "8": 6,
+        "9": 8,
+        "10": 10
+      },
+      "additionalRates": {
+        "8": 50,
+        "10": 70
+      }
+    },
+    "publicRental": {
+      "code": "05",
+      "description": "장기임대주택(조특법97조의4)",
+      "rates": {
+        "8": 50,
+        "10": 70
+      }
+    }
+  },
+  "excluded": {
+    "codes": ["03"],
+    "description": "배제",
+    "conditions": [
+      "미등기양도",
+      "비사업용토지",
+      "다주택중과대상(일부)"
+    ]
+  },
+  "codeMapping": {
+    "01": "table2",
+    "02": "table1",
+    "03": "excluded",
+    "04": "specialCases.longTermRental",
+    "05": "specialCases.publicRental",
+    "06": "specialCases.unsoldHousing"
+  }
+}

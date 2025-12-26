@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "별지제84호서식 작성방법 12, 조세특례제한법"
+  },
+  "amount": 20000,
+  "label": "전자신고세액공제",
+  "conditions": {
+    "selfFiling": true,
+    "note": "납세자 본인 전자신고 시에만 적용, 대리신고 제외"
+  },
+  "limit": {
+    "type": "NO_EXCEED_TAX_DUE",
+    "note": "산출세액-기공제액을 초과하여 공제 불가"
+  }
+}

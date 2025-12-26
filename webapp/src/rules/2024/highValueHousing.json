@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "소득세법 제89조, 국세청 세액계산요령"
+  },
+  "threshold": {
+    "amount": 1200000000,
+    "label": "12억원",
+    "note": "고가주택 기준금액"
+  },
+  "formula": {
+    "taxableGainRatio": "(양도가액 - 12억) / 양도가액",
+    "taxableTransferGain": "전체양도차익 × taxableGainRatio",
+    "taxableLtDeduction": "전체장특공액 × taxableGainRatio",
+    "note": "12억 초과분에 대해서만 과세"
+  },
+  "applicableConditions": [
+    "1세대1주택",
+    "양도가액 > 12억원",
+    "비과세 요건 충족(보유/거주기간 등)"
+  ],
+  "effectiveFromDate": "2021-01-01",
+  "previousThreshold": {
+    "amount": 900000000,
+    "effectiveTo": "2020-12-31"
+  }
+}

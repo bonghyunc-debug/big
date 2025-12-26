@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "국세기본법 제47조의2~5, 제48조; 국세기본법 시행령 제27조의4"
+  },
+  "underReport": {
+    "description": "무(과소)신고 가산세",
+    "general": {
+      "noReport": 0.20,
+      "underReport": 0.10,
+      "note": "무신고 20%, 과소신고 10%"
+    },
+    "unfaithful": {
+      "noReport": 0.40,
+      "underReport": 0.40,
+      "note": "부당 무신고/과소신고 40%"
+    },
+    "minimum": {
+      "noReport": {
+        "rate": 0.0007,
+        "perDay": false,
+        "note": "수입금액의 0.07% (또는 0.14%)"
+      }
+    }
+  },
+  "latePayment": {
+    "description": "납부지연 가산세",
+    "dailyRate": 0.00022,
+    "note": "미납세액 × 0.022% × 경과일수",
+    "maxDays": 365,
+    "startFrom": "납부기한 다음날"
+  },
+  "reductions": {
+    "description": "기한후/수정신고 감면(국세기본법 제48조)",
+    "lateReport": {
+      "within1Month": 0.50,
+      "within3Months": 0.30,
+      "within6Months": 0.20,
+      "within1Year": 0.10,
+      "within1Year6Months": 0.05,
+      "within2Years": 0.05,
+      "note": "기한후신고 - 무신고가산세 감면"
+    },
+    "amendReport": {
+      "within1Month": 0.90,
+      "within3Months": 0.75,
+      "within6Months": 0.50,
+      "within1Year": 0.30,
+      "within1Year6Months": 0.20,
+      "within2Years": 0.10,
+      "note": "수정신고 - 과소신고가산세 감면"
+    }
+  },
+  "reductionPeriodDays": {
+    "within1Month": 30,
+    "within3Months": 90,
+    "within6Months": 180,
+    "within1Year": 365,
+    "within1Year6Months": 548,
+    "within2Years": 730
+  }
+}
