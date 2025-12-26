@@ -1,0 +1,92 @@
+{
+  "scenarioId": "S-REAL-001",
+  "description": "토지 일반세율 + 장기보유특별공제(표1) - 15년 보유",
+  "case": {
+    "reportType": "PRELIM",
+    "taxYear": 2024,
+    "taxpayer": {
+      "name": "홍길동",
+      "rrn": "800101-1234567",
+      "address": "서울시 강남구 테헤란로 123"
+    },
+    "bp1Assets": [
+      {
+        "id": "test-asset-001",
+        "rateCode": "1-10",
+        "assetTypeCode": "1",
+        "transferDate": "2024-06-15",
+        "acquireDate": "2009-06-15",
+        "transferPrice": 500000000,
+        "acquirePrice": 200000000,
+        "acquirePriceType": "ACTUAL",
+        "ltDeductionCode": "02",
+        "userFlags": {
+          "unregistered": false,
+          "nonBusinessLand": false,
+          "multiHomeSurtax": false,
+          "oneHouseExemption": false,
+          "highValueHousing": false
+        },
+        "bp3": {
+          "acquireCosts": {
+            "r111_purchasePrice": 200000000,
+            "r112_acquisitionTax": 8000000,
+            "r113_registrationTax": 0,
+            "r114_lawyerFee": 500000,
+            "r115_brokerFee": 2000000,
+            "r116_other": 0
+          },
+          "expenses": {
+            "r210_capitalExpense": 0,
+            "r220_transferExpense": 5000000,
+            "r250_filingFee": 0,
+            "r260_lawyerFee": 0,
+            "r270_notaryFee": 0,
+            "r280_stampDuty": 0,
+            "r290_other": 0
+          }
+        }
+      }
+    ],
+    "bp2Assets": [],
+    "reliefs": [],
+    "adjustments": {
+      "prevReportedGainIncome": 0,
+      "foreignTaxCredit": 0,
+      "withholdingCredit": 0,
+      "pensionCredit": 0,
+      "prevTaxPaid": 0
+    },
+    "flags": {
+      "eFiling": true,
+      "proxyFiling": false
+    }
+  },
+  "expect": {
+    "assetResults": [
+      {
+        "assetId": "test-asset-001",
+        "bp3AcquireTotal": 210500000,
+        "bp3ExpenseTotal": 5000000,
+        "transferGainTotal": 284500000,
+        "taxableTransferGain": 284500000,
+        "ltDeductionRate": 30,
+        "ltDeductionAmount": 85350000,
+        "gainIncome": 199150000
+      }
+    ],
+    "mainResult": {
+      "line04_gainIncomeTotal": 199150000,
+      "line07_basicDeduction": 2500000,
+      "line08_taxBase": 196650000,
+      "line10_taxBeforeCredits": 54726750,
+      "line15_eFilingCredit": 20000,
+      "line18_taxDue": 54706750
+    }
+  },
+  "evidence": [
+    "소득세법 제95조 (장기보유특별공제)",
+    "소득세법 시행령 별표1 (15년 이상 보유 시 30%)"
+  ],
+  "notes": "15년 보유 토지, 장특공 30% 적용"
+}

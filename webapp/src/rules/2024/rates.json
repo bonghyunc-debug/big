@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "소득세법 제55조, 제104조; 국세청 세율표"
+  },
+  "progressiveRates": {
+    "description": "기본 누진세율(소득세법 제55조)",
+    "brackets": [
+      { "over": 0, "upTo": 14000000, "rate": 6, "deduction": 0 },
+      { "over": 14000000, "upTo": 50000000, "rate": 15, "deduction": 1260000 },
+      { "over": 50000000, "upTo": 88000000, "rate": 24, "deduction": 5760000 },
+      { "over": 88000000, "upTo": 150000000, "rate": 35, "deduction": 15440000 },
+      { "over": 150000000, "upTo": 300000000, "rate": 38, "deduction": 19940000 },
+      { "over": 300000000, "upTo": 500000000, "rate": 40, "deduction": 25940000 },
+      { "over": 500000000, "upTo": 1000000000, "rate": 42, "deduction": 35940000 },
+      { "over": 1000000000, "upTo": null, "rate": 45, "deduction": 65940000 }
+    ]
+  },
+  "flatRates": {
+    "description": "단일세율(소득세법 제104조)",
+    "unregistered": { "rate": 70, "note": "미등기양도" },
+    "shortTerm1YearRealEstate": { "rate": 50, "note": "부동산 1년미만 보유" },
+    "shortTerm2YearRealEstate": { "rate": 40, "note": "부동산 1-2년 보유" },
+    "shortTerm1YearRights": { "rate": 50, "note": "분양권등 1년미만" },
+    "shortTerm2YearRights": { "rate": 40, "note": "분양권등 1-2년" },
+    "derivativeOld": { "rate": 5, "note": "파생상품(2018.3.31이전 양도)" },
+    "derivativeNew": { "rate": 10, "note": "파생상품(2018.4.1이후 양도)" },
+    "foreignStock": { "rate": 20, "note": "국외주식" },
+    "smallSMEStock": { "rate": 10, "note": "중소기업 비상장주식" },
+    "largeStock": { "rate": 20, "note": "대기업/비중소기업 주식" },
+    "listedStockLargeShareholder": { "rate": 20, "note": "상장주식 대주주" }
+  },
+  "surtaxRates": {
+    "description": "중과세율(누진+가산)",
+    "nonBusinessLand": {
+      "add": 10,
+      "note": "비사업용토지 누진세율+10%p"
+    },
+    "multiHomeAdjusted2Home": {
+      "add": 20,
+      "note": "조정대상지역 2주택 누진+20%p",
+      "suspendFrom": "2022-05-10",
+      "suspendTo": "2025-05-09"
+    },
+    "multiHomeAdjusted3Home": {
+      "add": 30,
+      "note": "조정대상지역 3주택이상 누진+30%p",
+      "suspendFrom": "2022-05-10",
+      "suspendTo": "2025-05-09"
+    }
+  },
+  "rateCategoryMapping": {
+    "1-10": { "type": "progressive", "desc": "토지/건물(일반)" },
+    "1-11": { "type": "progressive", "addNonBusiness": true, "desc": "비사업용토지(중과)" },
+    "1-15": { "type": "flat", "key": "shortTerm1YearRealEstate", "desc": "1년미만 부동산" },
+    "1-20": { "type": "progressive", "desc": "토지/건물(일반) 2-3년" },
+    "1-21": { "type": "flat", "key": "shortTerm2YearRealEstate", "desc": "1-2년 부동산" },
+    "1-23": { "type": "flat", "key": "shortTerm1YearRealEstate", "desc": "조합원입주권 1년미만" },
+    "1-30": { "type": "progressive", "desc": "조합원입주권(장기)" },
+    "1-31": { "type": "progressive", "addNonBusiness": true, "desc": "비사업용토지(조합원)" },
+    "1-35": { "type": "flat", "key": "unregistered", "desc": "미등기 부동산" },
+    "1-36": { "type": "flat", "key": "unregistered", "desc": "미등기 권리" },
+    "1-37": { "type": "flat", "key": "unregistered", "desc": "미등기 기타" },
+    "1-38": { "type": "flat", "key": "shortTerm1YearRights", "desc": "분양권 1년미만" },
+    "1-39": { "type": "flat", "key": "shortTerm2YearRights", "desc": "분양권 1-2년" },
+    "1-40": { "type": "progressive", "desc": "분양권 2년이상" },
+    "1-46": { "type": "progressive", "addMultiHome2": true, "desc": "조정2주택" },
+    "1-47": { "type": "progressive", "addMultiHome3": true, "desc": "조정3주택" },
+    "1-48": { "type": "progressive", "addMultiHome2NonBusiness": true, "desc": "조정2주택+비사업용" },
+    "1-49": { "type": "progressive", "addMultiHome3NonBusiness": true, "desc": "조정3주택+비사업용" },
+    "1-50": { "type": "flat", "key": "shortTerm1YearRealEstate", "desc": "1년미만 주택" },
+    "1-51": { "type": "flat", "key": "shortTerm2YearRealEstate", "desc": "1-2년 주택" },
+    "1-52": { "type": "progressive", "desc": "주택 2년이상" },
+    "1-53": { "type": "flat", "key": "shortTerm1YearRealEstate", "addMultiHome2": true, "desc": "조정2주택 1년미만" },
+    "1-54": { "type": "flat", "key": "shortTerm2YearRealEstate", "addMultiHome2": true, "desc": "조정2주택 1-2년" },
+    "1-55": { "type": "flat", "key": "shortTerm1YearRealEstate", "addMultiHome3": true, "desc": "조정3주택 1년미만" },
+    "1-56": { "type": "flat", "key": "shortTerm2YearRealEstate", "addMultiHome3": true, "desc": "조정3주택 1-2년" },
+    "1-57": { "type": "progressive", "desc": "주택외 일반" },
+    "1-58": { "type": "progressive", "desc": "기타자산" },
+    "1-61": { "type": "flat", "key": "smallSMEStock", "desc": "중소기업주식" },
+    "1-62": { "type": "flat", "key": "largeStock", "desc": "중소기업외주식" },
+    "1-63": { "type": "flat", "key": "listedStockLargeShareholder", "desc": "상장주식대주주" },
+    "1-70": { "type": "progressive", "desc": "특정주식" },
+    "1-71": { "type": "progressive", "addNonBusiness": true, "desc": "부동산과다법인주식" },
+    "1-73": { "type": "flat", "key": "foreignStock", "desc": "국외주식" },
+    "1-80": { "type": "flat", "key": "derivativeOld", "desc": "파생 5%" },
+    "1-81": { "type": "flat", "key": "derivativeNew", "desc": "파생 10%" },
+    "1-82": { "type": "progressive", "desc": "신탁수익권" },
+    "1-83": { "type": "progressive", "addNonBusiness": true, "desc": "신탁수익권(비사업용)" },
+    "1-84": { "type": "flat", "key": "shortTerm1YearRealEstate", "desc": "신탁수익권 1년미만" },
+    "1-85": { "type": "flat", "key": "shortTerm2YearRealEstate", "desc": "신탁수익권 1-2년" },
+    "1-86": { "type": "flat", "key": "unregistered", "desc": "미등기 신탁" },
+    "1-87": { "type": "progressive", "desc": "기타권리" },
+    "1-88": { "type": "flat", "key": "shortTerm1YearRealEstate", "desc": "기타권리 1년미만" },
+    "1-89": { "type": "flat", "key": "shortTerm2YearRealEstate", "desc": "기타권리 1-2년" },
+    "1-92": { "type": "progressive", "desc": "영업권등" },
+    "1-94": { "type": "flat", "key": "foreignStock", "desc": "국외자산" },
+    "1-95": { "type": "progressive", "desc": "국외부동산" },
+    "2-10": { "type": "flat", "key": "largeStock", "desc": "주식(기타)" }
+  }
+}

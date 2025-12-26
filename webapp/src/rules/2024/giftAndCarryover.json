@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "소득세법 제88조, 시행령 제159조, 제97조의2"
+  },
+  "giftWithDebt": {
+    "description": "부담부증여(시행령 제159조)",
+    "formula": {
+      "salePortion": {
+        "transferPrice": "평가액 × (채무액 / 증여재산가액)",
+        "acquirePrice": "증여자취득가액 × (채무액 / 증여재산가액)",
+        "note": "채무액 상당 부분은 양도로 봄"
+      },
+      "giftPortion": {
+        "note": "나머지는 증여로 처리(증여세 대상)"
+      }
+    },
+    "requiredInputs": [
+      "증여재산평가액",
+      "인수채무액",
+      "증여자의 취득가액",
+      "필요경비"
+    ]
+  },
+  "carryoverTax": {
+    "description": "이월과세(소득세법 제97조의2)",
+    "conditions": {
+      "donorRelation": ["배우자", "직계존비속"],
+      "period": {
+        "realEstate": {
+          "years": 10,
+          "note": "증여일로부터 10년 이내 양도"
+        },
+        "stock": {
+          "years": 1,
+          "note": "주식은 증여일로부터 1년 이내 양도"
+        }
+      }
+    },
+    "acquireCost": {
+      "base": "증여자의 취득 당시 실지거래가액",
+      "addable": "납부(또는 납부할) 증여세 상당액",
+      "note": "증여세 상당액은 필요경비 산입"
+    },
+    "formula": {
+      "giftTaxCredit": "MIN(증여시 납부세액, 양도소득산출세액 × (이월과세적용양도차익 / 총양도차익))",
+      "note": "증여세 기납부액 공제"
+    }
+  }
+}
