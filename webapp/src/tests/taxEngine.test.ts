@@ -287,4 +287,254 @@ describe('계산 엔진', () => {
     // 주식 버킷 기본공제 250만원
     expect(result.mainResult.line07_basicDeduction).toBe(2500000);
   });
+
+  it('감면 + 농어촌특별세 케이스 - 공익사업수용 10%', () => {
+    const testCase: TaxCase = {
+      id: 'test-relief-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '김철수',
+        rrn: '750101-1234567',
+        address: '경기도 화성시',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-relief-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2014-06-15',
+          transferPrice: 500000000,
+          acquirePrice: 200000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [
+        {
+          id: 'relief-001',
+          assetId: 'asset-relief-001',
+          reliefCode: 'PUBLIC_CASH',
+          reliefName: '공익사업수용 감면 (현금보상)',
+          reliefType: 'TAX',
+          reliefRate: 10,
+          reliefAmount: 5000000, // 감면액 500만원
+          baseAmount: 50000000,  // 산출세액 기준
+          legalBasis: '조세특례제한법 제77조',
+          limitGroup: 'PUBLIC',
+          prevYearReliefUsed: 0,
+          ruralSpecialTaxExempt: false,
+          isSelfFarmLand: false,
+        },
+      ],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+
+    // 감면세액 500만원
+    expect(result.mainResult.line11_taxRelief).toBe(5000000);
+
+    // 농특세 과세 대상 (공익사업수용은 농특세 과세)
+    expect(result.mainResult.ruralSpecialTax.taxableReliefAmount).toBe(5000000);
+    expect(result.mainResult.ruralSpecialTax.exemptReliefAmount).toBe(0);
+
+    // 농특세 = 500만원 × 20% = 100만원
+    expect(result.mainResult.ruralSpecialTax.taxRate).toBe(20);
+    expect(result.mainResult.ruralSpecialTax.taxAmount).toBe(1000000);
+
+    // 총 납부세액 = 양도소득세 + 농특세
+    expect(result.mainResult.totalTaxDue).toBe(
+      result.mainResult.line18_taxDue + result.mainResult.ruralSpecialTax.taxAmount
+    );
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('자경농지 감면 - 농특세 비과세 케이스', () => {
+    const testCase: TaxCase = {
+      id: 'test-relief-002',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '박농부',
+        rrn: '650101-1234567',
+        address: '전라남도 나주시',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-farm-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2010-06-15',
+          transferPrice: 300000000,
+          acquirePrice: 100000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [
+        {
+          id: 'relief-farm-001',
+          assetId: 'asset-farm-001',
+          reliefCode: 'SELF_FARM_8Y',
+          reliefName: '8년 자경농지 감면',
+          reliefType: 'TAX',
+          reliefRate: 100,
+          reliefAmount: 30000000, // 감면액 3천만원
+          baseAmount: 30000000,
+          legalBasis: '조세특례제한법 제69조',
+          limitGroup: 'FARM',
+          prevYearReliefUsed: 0,
+          ruralSpecialTaxExempt: true, // 자경농지는 농특세 비과세
+          isSelfFarmLand: true,
+        },
+      ],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+
+    // 감면세액 3천만원
+    expect(result.mainResult.line11_taxRelief).toBe(30000000);
+
+    // 자경농지는 농특세 비과세
+    expect(result.mainResult.ruralSpecialTax.exemptReliefAmount).toBe(30000000);
+    expect(result.mainResult.ruralSpecialTax.taxableReliefAmount).toBe(0);
+    expect(result.mainResult.ruralSpecialTax.taxAmount).toBe(0);
+
+    // 농특세 상세 내역 확인
+    expect(result.mainResult.ruralSpecialTax.details).toHaveLength(1);
+    expect(result.mainResult.ruralSpecialTax.details[0].isExempt).toBe(true);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('감면 종합한도 적용 케이스 - 연 1억 초과', () => {
+    const testCase: TaxCase = {
+      id: 'test-relief-limit-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '최부농',
+        rrn: '600101-1234567',
+        address: '충청남도 공주시',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-limit-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2005-06-15',
+          transferPrice: 2000000000, // 20억
+          acquirePrice: 500000000,   // 5억
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [
+        {
+          id: 'relief-limit-001',
+          assetId: 'asset-limit-001',
+          reliefCode: 'SELF_FARM_8Y',
+          reliefName: '8년 자경농지 감면',
+          reliefType: 'TAX',
+          reliefRate: 100,
+          reliefAmount: 150000000, // 감면액 1.5억 (한도 초과)
+          baseAmount: 150000000,
+          legalBasis: '조세특례제한법 제69조',
+          limitGroup: 'FARM',
+          prevYearReliefUsed: 0,
+          ruralSpecialTaxExempt: true,
+          isSelfFarmLand: true,
+        },
+      ],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+
+    // 감면 한도 적용 확인
+    expect(result.mainResult.reliefLimitResult.requestedAmount).toBe(150000000);
+    expect(result.mainResult.reliefLimitResult.annualLimit).toBe(100000000);
+    expect(result.mainResult.reliefLimitResult.exceededAmount).toBe(50000000);
+    expect(result.mainResult.reliefLimitResult.limitedAmount).toBe(100000000);
+
+    // 한도 적용 후 감면세액 = 1억원
+    expect(result.mainResult.line11_taxRelief).toBe(100000000);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
 });

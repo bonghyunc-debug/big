@@ -692,6 +692,210 @@ function calculateTax(
 }
 
 /**
+ * 감면한도 적용 (조세특례제한법 제133조)
+ * - 과세기간별 한도: 1억원
+ * - 5개 과세기간 합계 한도: 2억원
+ */
+function applyReliefLimits(
+  reliefs: TaxCase['reliefs'],
+  rulePack: ReturnType<typeof getRulePack>,
+  logs: CalculationLog[]
+): {
+  adjustedReliefs: TaxCase['reliefs'];
+  limitResult: {
+    annualLimit: number;
+    fiveYearLimit: number;
+    requestedAmount: number;
+    limitedAmount: number;
+    exceededAmount: number;
+    prevFourYearsUsed: number;
+  };
+} {
+  const reliefRules = rulePack.reliefs;
+  const comprehensiveLimit = reliefRules.comprehensiveLimit;
+  const annualLimit = comprehensiveLimit.annualLimit;
+  const fiveYearLimit = comprehensiveLimit.fiveYearLimit;
+  const applicableCodes = comprehensiveLimit.applicableCodes as string[];
+
+  // 한도 적용 대상 감면액 합계
+  let limitSubjectAmount = 0;
+  // 직전 4년 사용액 (사용자 입력 기반)
+  let prevFourYearsUsed = 0;
+
+  for (const relief of reliefs) {
+    if (applicableCodes.includes(relief.reliefCode)) {
+      limitSubjectAmount += relief.reliefAmount;
+      prevFourYearsUsed += relief.prevYearReliefUsed ?? 0;
+    }
+  }
+
+  // 과세기간별 한도 초과액
+  const annualExcess = Math.max(0, limitSubjectAmount - annualLimit);
+
+  // 5년 합계 한도 초과액
+  const fiveYearTotal = limitSubjectAmount + prevFourYearsUsed;
+  const fiveYearExcess = Math.max(0, fiveYearTotal - fiveYearLimit);
+
+  // 더 큰 초과액 적용 (조특법 제133조)
+  const exceededAmount = Math.max(annualExcess, fiveYearExcess);
+  const limitedAmount = Math.max(0, limitSubjectAmount - exceededAmount);
+
+  logs.push({
+    step: 'CALC-RELIEF-LIMIT',
+    description: '감면 종합한도 적용 (조특법 제133조)',
+    values: {
+      requestedAmount: limitSubjectAmount,
+      annualLimit,
+      fiveYearLimit,
+      prevFourYearsUsed,
+      annualExcess,
+      fiveYearExcess,
+      exceededAmount,
+      limitedAmount,
+    },
+  });
+
+  // 한도 적용하여 감면액 조정
+  const adjustedReliefs = reliefs.map((relief) => {
+    if (!applicableCodes.includes(relief.reliefCode) || exceededAmount === 0) {
+      return relief;
+    }
+    // 비율로 감면액 축소
+    const ratio = limitSubjectAmount > 0 ? limitedAmount / limitSubjectAmount : 1;
+    return {
+      ...relief,
+      reliefAmount: roundToWon(relief.reliefAmount * ratio),
+    };
+  });
+
+  return {
+    adjustedReliefs,
+    limitResult: {
+      annualLimit,
+      fiveYearLimit,
+      requestedAmount: limitSubjectAmount,
+      limitedAmount,
+      exceededAmount,
+      prevFourYearsUsed,
+    },
+  };
+}
+
+/**
+ * 농어촌특별세 계산 (농어촌특별세법 제5조)
+ * - 세율: 감면세액의 20%
+ * - 비과세: 자경농지, 농지대토 등 농어업 관련 감면
+ */
+function calculateRuralSpecialTax(
+  reliefs: TaxCase['reliefs'],
+  rulePack: ReturnType<typeof getRulePack>,
+  logs: CalculationLog[]
+): {
+  taxableReliefAmount: number;
+  exemptReliefAmount: number;
+  taxRate: number;
+  taxAmount: number;
+  details: Array<{
+    reliefCode: string;
+    reliefName: string;
+    reliefAmount: number;
+    isExempt: boolean;
+    exemptReason?: string;
+    ruralTaxAmount: number;
+  }>;
+} {
+  const ruralTaxRules = rulePack.ruralSpecialTax;
+  const reliefRules = rulePack.reliefs;
+  const taxRate = ruralTaxRules.taxRate.rate;
+  const exemptCodes = ruralTaxRules.exemptions.exemptReliefCodes.map(
+    (e: { code: string }) => e.code
+  );
+
+  let taxableReliefAmount = 0;
+  let exemptReliefAmount = 0;
+  const details: Array<{
+    reliefCode: string;
+    reliefName: string;
+    reliefAmount: number;
+    isExempt: boolean;
+    exemptReason?: string;
+    ruralTaxAmount: number;
+  }> = [];
+
+  for (const relief of reliefs) {
+    if (relief.reliefType !== 'TAX' || relief.reliefAmount <= 0) {
+      continue;
+    }
+
+    // 비과세 여부 확인
+    let isExempt = false;
+    let exemptReason: string | undefined;
+
+    // 1. 직접 비과세 코드
+    if (exemptCodes.includes(relief.reliefCode)) {
+      isExempt = true;
+      const exemptInfo = ruralTaxRules.exemptions.exemptReliefCodes.find(
+        (e: { code: string; reason: string }) => e.code === relief.reliefCode
+      );
+      exemptReason = exemptInfo?.reason;
+    }
+
+    // 2. 사용자가 비과세 체크한 경우
+    if (relief.ruralSpecialTaxExempt) {
+      isExempt = true;
+      exemptReason = exemptReason || '사용자 지정 비과세';
+    }
+
+    // 3. 공익사업 수용 중 자경농지인 경우 조건부 비과세
+    if (
+      relief.reliefCode.startsWith('PUBLIC_') &&
+      relief.isSelfFarmLand
+    ) {
+      isExempt = true;
+      exemptReason = '공익사업용 토지 중 자경농지 (농특세법 시행령 제4조)';
+    }
+
+    const ruralTaxAmount = isExempt ? 0 : roundToWon(relief.reliefAmount * (taxRate / 100));
+
+    if (isExempt) {
+      exemptReliefAmount += relief.reliefAmount;
+    } else {
+      taxableReliefAmount += relief.reliefAmount;
+    }
+
+    details.push({
+      reliefCode: relief.reliefCode,
+      reliefName: relief.reliefName,
+      reliefAmount: relief.reliefAmount,
+      isExempt,
+      exemptReason,
+      ruralTaxAmount,
+    });
+  }
+
+  const taxAmount = roundToWon(taxableReliefAmount * (taxRate / 100));
+
+  logs.push({
+    step: 'CALC-RURAL-TAX',
+    description: '농어촌특별세 계산 (농특세법 제5조)',
+    values: {
+      taxableReliefAmount,
+      exemptReliefAmount,
+      taxRate,
+      taxAmount,
+    },
+  });
+
+  return {
+    taxableReliefAmount,
+    exemptReliefAmount,
+    taxRate,
+    taxAmount,
+    details,
+  };
+}
+
+/**
  * 가산세 계산
  */
 function calculatePenalty(
@@ -835,11 +1039,14 @@ export function calculateTaxCase(taxCase: TaxCase): CalculationResult {
     values: { totalGainIncome },
   });
 
-  // 3. 감면 계산 (⑥, ⑪)
+  // 3. 감면 계산 (⑥, ⑪) - 한도 적용 포함
+  // 먼저 감면 한도 적용 (조특법 제133조)
+  const { adjustedReliefs, limitResult } = applyReliefLimits(taxCase.reliefs, rulePack, logs);
+
   let incomeDeductionBase = 0; // 소득차감방식 감면
   let taxReliefTotal = 0;      // 세액감면
 
-  for (const relief of taxCase.reliefs) {
+  for (const relief of adjustedReliefs) {
     if (relief.reliefType === 'INCOME') {
       incomeDeductionBase += relief.reliefAmount;
     } else {
@@ -849,7 +1056,7 @@ export function calculateTaxCase(taxCase: TaxCase): CalculationResult {
 
   logs.push({
     step: 'CALC-RELIEF-001',
-    description: '감면 집계',
+    description: '감면 집계 (한도 적용 후)',
     values: { incomeDeductionBase, taxReliefTotal },
   });
 
@@ -923,6 +1130,22 @@ export function calculateTaxCase(taxCase: TaxCase): CalculationResult {
     },
   });
 
+  // 9. 농어촌특별세 계산 (농어촌특별세법 제5조)
+  const ruralSpecialTaxResult = calculateRuralSpecialTax(adjustedReliefs, rulePack, logs);
+
+  // 10. 총 납부세액 (양도소득세 + 농어촌특별세)
+  const totalTaxDue = taxDue + ruralSpecialTaxResult.taxAmount;
+
+  logs.push({
+    step: 'CALC-RET-TOTAL',
+    description: '총 납부세액 (양도소득세 + 농특세)',
+    values: {
+      capitalGainsTax: taxDue,
+      ruralSpecialTax: ruralSpecialTaxResult.taxAmount,
+      totalTaxDue,
+    },
+  });
+
   // 세율구분 집계표
   const rateCategorySummary: DerivedMainResult['rateCategorySummary'] = [];
   const rateGroups = new Map<string, { sum: number; count: number }>();
@@ -976,6 +1199,18 @@ export function calculateTaxCase(taxCase: TaxCase): CalculationResult {
     penaltyTotal: penaltyResult.total,
     line17_prevTaxPaid: prevTaxPaid,
     line18_taxDue: taxDue,
+    // 농어촌특별세 (농어촌특별세법 제5조)
+    ruralSpecialTax: {
+      taxableReliefAmount: ruralSpecialTaxResult.taxableReliefAmount,
+      exemptReliefAmount: ruralSpecialTaxResult.exemptReliefAmount,
+      taxRate: ruralSpecialTaxResult.taxRate,
+      taxAmount: ruralSpecialTaxResult.taxAmount,
+      details: ruralSpecialTaxResult.details,
+    },
+    // 감면한도 적용 결과 (조특법 제133조)
+    reliefLimitResult: limitResult,
+    // 총 납부세액 (양도소득세 + 농특세)
+    totalTaxDue,
     rateCategorySummary,
     basicDeductionByBucket: deductionResult.byBucket,
   };

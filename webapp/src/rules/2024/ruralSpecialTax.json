@@ -1,0 +1,84 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "농어촌특별세법 제1조~제5조, 동법 시행령 제4조"
+  },
+  "description": "농어촌특별세는 농어업 경쟁력 강화와 농어촌 산업기반시설 확충 재원 충당을 위한 목적세",
+  "taxBase": {
+    "description": "양도소득세 감면세액",
+    "legalBasis": "농어촌특별세법 제5조 제1항 제1호"
+  },
+  "taxRate": {
+    "rate": 20,
+    "description": "감면세액의 20%",
+    "legalBasis": "농어촌특별세법 제5조 제1항 제1호"
+  },
+  "exemptions": {
+    "description": "농어촌특별세 비과세 대상",
+    "legalBasis": "농어촌특별세법 제4조, 동법 시행령 제4조",
+    "exemptReliefCodes": [
+      {
+        "code": "SELF_FARM_8Y",
+        "reason": "조세특례제한법 제69조 자경농지 (8년 이상 경작)",
+        "legalBasis": "농어촌특별세법 시행령 제4조 제1항 제1호"
+      },
+      {
+        "code": "FARM_REPLACEMENT",
+        "reason": "조세특례제한법 제70조 농지대토",
+        "legalBasis": "농어촌특별세법 시행령 제4조 제1항 제1호"
+      },
+      {
+        "code": "FOREST_LAND",
+        "reason": "조세특례제한법 제69조의2 산림지",
+        "legalBasis": "농어촌특별세법 시행령 제4조 제1항 제1호"
+      },
+      {
+        "code": "FISHING_LAND",
+        "reason": "조세특례제한법 제69조의3 어업용토지",
+        "legalBasis": "농어촌특별세법 시행령 제4조 제1항 제1호"
+      },
+      {
+        "code": "LIVESTOCK_LAND",
+        "reason": "조세특례제한법 제69조 축사용지",
+        "legalBasis": "농어촌특별세법 시행령 제4조 제1항 제1호"
+      },
+      {
+        "code": "PUBLIC_RENTAL_CONTRIBUTION",
+        "reason": "조세특례제한법 제99조의2 공공임대주택 현물출자",
+        "legalBasis": "농어촌특별세법 제4조 제2호"
+      }
+    ],
+    "conditionalExemptions": [
+      {
+        "reliefCodePattern": "PUBLIC_*",
+        "condition": "isSelfFarmLand",
+        "conditionDescription": "조세특례제한법 제69조 제1항 본문에 따른 거주자가 직접 경작한 토지 (8년 요건 불문)",
+        "reason": "공익사업용 토지 중 자경농지인 경우",
+        "legalBasis": "농어촌특별세법 시행령 제4조 제1항 제1호"
+      }
+    ]
+  },
+  "taxableReliefs": {
+    "description": "농어촌특별세 과세 대상 감면",
+    "reliefCodes": [
+      "PUBLIC_CASH",
+      "PUBLIC_BOND",
+      "PUBLIC_BOND_3Y",
+      "PUBLIC_BOND_5Y",
+      "PUBLIC_LAND_COMP",
+      "LONG_TERM_RENTAL",
+      "VENTURE_STOCK",
+      "SME_STOCK"
+    ],
+    "note": "자경농지에 해당하는 경우 조건부 비과세 가능"
+  },
+  "filingRequirements": {
+    "description": "농어촌특별세 신고 및 납부",
+    "legalBasis": "농어촌특별세법 제7조",
+    "filingPeriod": "양도소득세 신고기한과 동일",
+    "paymentPeriod": "양도소득세 납부기한과 동일",
+    "note": "양도소득세 신고서와 함께 농어촌특별세 과세표준신고서 제출"
+  }
+}

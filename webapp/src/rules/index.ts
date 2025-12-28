@@ -6,6 +6,8 @@ import basicDeduction2024 from './2024/basicDeduction.json';
 import highValueHousing2024 from './2024/highValueHousing.json';
 import eFilingCredit2024 from './2024/eFilingCredit.json';
 import giftAndCarryover2024 from './2024/giftAndCarryover.json';
+import reliefs2024 from './2024/reliefs.json';
+import ruralSpecialTax2024 from './2024/ruralSpecialTax.json';
 
 export interface RulePack {
   rates: typeof rates2024;
@@ -15,6 +17,8 @@ export interface RulePack {
   highValueHousing: typeof highValueHousing2024;
   eFilingCredit: typeof eFilingCredit2024;
   giftAndCarryover: typeof giftAndCarryover2024;
+  reliefs: typeof reliefs2024;
+  ruralSpecialTax: typeof ruralSpecialTax2024;
 }
 
 const rulePacks: Record<number, RulePack> = {
@@ -26,24 +30,30 @@ const rulePacks: Record<number, RulePack> = {
     highValueHousing: highValueHousing2024,
     eFilingCredit: eFilingCredit2024,
     giftAndCarryover: giftAndCarryover2024,
+    reliefs: reliefs2024,
+    ruralSpecialTax: ruralSpecialTax2024,
   },
   2023: {
-    rates: rates2024, // 2023도 동일 (필요시 별도 파일)
+    rates: rates2024,
     ltDeduction: ltDeduction2024,
     penalty: penalty2024,
     basicDeduction: basicDeduction2024,
     highValueHousing: highValueHousing2024,
     eFilingCredit: eFilingCredit2024,
     giftAndCarryover: giftAndCarryover2024,
+    reliefs: reliefs2024,
+    ruralSpecialTax: ruralSpecialTax2024,
   },
   2025: {
-    rates: rates2024, // 2025도 동일 (필요시 별도 파일)
+    rates: rates2024,
     ltDeduction: ltDeduction2024,
     penalty: penalty2024,
     basicDeduction: basicDeduction2024,
     highValueHousing: highValueHousing2024,
     eFilingCredit: eFilingCredit2024,
     giftAndCarryover: giftAndCarryover2024,
+    reliefs: reliefs2024,
+    ruralSpecialTax: ruralSpecialTax2024,
   },
 };
 
@@ -56,4 +66,14 @@ export function getRulePack(year: number): RulePack {
   return pack;
 }
 
-export { rates2024, ltDeduction2024, penalty2024, basicDeduction2024, highValueHousing2024, eFilingCredit2024, giftAndCarryover2024 };
+export {
+  rates2024,
+  ltDeduction2024,
+  penalty2024,
+  basicDeduction2024,
+  highValueHousing2024,
+  eFilingCredit2024,
+  giftAndCarryover2024,
+  reliefs2024,
+  ruralSpecialTax2024,
+};

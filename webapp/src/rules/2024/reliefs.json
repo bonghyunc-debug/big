@@ -1,0 +1,298 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "조세특례제한법 제69조~제77조, 제133조; 농어촌특별세법 제4조, 제5조"
+  },
+  "reliefCodes": {
+    "SELF_FARM_8Y": {
+      "code": "SELF_FARM_8Y",
+      "name": "8년 자경농지 감면",
+      "legalBasis": "조세특례제한법 제69조",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "농지소재지 거주자가 8년 이상 직접 경작한 농지 양도 시",
+      "requirements": [
+        "농지소재지 또는 연접 시군구/직선거리 20km 이내 거주",
+        "8년 이상 직접 경작 (농작업 1/2 이상 자기노동력)",
+        "양도일 현재 농지 상태 유지",
+        "경작기간 중 사업+근로소득 3,700만원 이상 과세기간 제외"
+      ],
+      "annualLimit": 100000000,
+      "fiveYearLimit": 200000000,
+      "limitGroup": "FARM",
+      "ruralSpecialTaxExempt": true,
+      "ruralSpecialTaxExemptReason": "농어촌특별세법 시행령 제4조 제1항 제1호"
+    },
+    "FARM_REPLACEMENT": {
+      "code": "FARM_REPLACEMENT",
+      "name": "농지대토 감면",
+      "legalBasis": "조세특례제한법 제70조",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "4년 이상 자경 농지 양도 후 1년 내 새 농지 취득 시",
+      "requirements": [
+        "종전 농지 4년 이상 재촌 자경",
+        "양도일로부터 1년 내 새 농지 취득 (수용 시 2년)",
+        "새 농지가 종전 농지 면적 2/3 이상 또는 가액 1/2 이상",
+        "종전+신규 농지 합산 8년 이상 경작"
+      ],
+      "annualLimit": 100000000,
+      "fiveYearLimit": 100000000,
+      "limitGroup": "FARM",
+      "ruralSpecialTaxExempt": true,
+      "ruralSpecialTaxExemptReason": "농어촌특별세법 시행령 제4조 제1항 제1호"
+    },
+    "PUBLIC_CASH": {
+      "code": "PUBLIC_CASH",
+      "name": "공익사업수용 감면 (현금보상)",
+      "legalBasis": "조세특례제한법 제77조 제1항 제1호",
+      "reliefType": "TAX",
+      "reliefRate": 10,
+      "description": "공익사업 수용 토지를 현금으로 보상받는 경우",
+      "requirements": [
+        "사업인정고시일 2년 전 취득 토지",
+        "공익사업을 위한 토지 등의 취득 및 보상에 관한 법률에 따른 수용"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "PUBLIC",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20,
+      "selfFarmExemptCondition": "자경농지인 경우 농특세 비과세"
+    },
+    "PUBLIC_BOND": {
+      "code": "PUBLIC_BOND",
+      "name": "공익사업수용 감면 (보상채권)",
+      "legalBasis": "조세특례제한법 제77조 제1항 제2호",
+      "reliefType": "TAX",
+      "reliefRate": 15,
+      "description": "공익사업 수용 토지를 보상채권으로 받는 경우",
+      "requirements": [
+        "사업인정고시일 2년 전 취득 토지",
+        "보상채권으로 보상 수령"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "PUBLIC",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20,
+      "selfFarmExemptCondition": "자경농지인 경우 농특세 비과세"
+    },
+    "PUBLIC_BOND_3Y": {
+      "code": "PUBLIC_BOND_3Y",
+      "name": "공익사업수용 감면 (3년이상 채권)",
+      "legalBasis": "조세특례제한법 제77조 제1항 제3호",
+      "reliefType": "TAX",
+      "reliefRate": 30,
+      "description": "만기 3년 이상 보상채권 특약으로 보유하는 경우",
+      "requirements": [
+        "사업인정고시일 2년 전 취득 토지",
+        "만기 3년 이상 보상채권을 만기까지 보유"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "PUBLIC",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20,
+      "selfFarmExemptCondition": "자경농지인 경우 농특세 비과세"
+    },
+    "PUBLIC_BOND_5Y": {
+      "code": "PUBLIC_BOND_5Y",
+      "name": "공익사업수용 감면 (5년이상 채권)",
+      "legalBasis": "조세특례제한법 제77조 제1항 제4호",
+      "reliefType": "TAX",
+      "reliefRate": 40,
+      "description": "만기 5년 이상 보상채권 특약으로 보유하는 경우",
+      "requirements": [
+        "사업인정고시일 2년 전 취득 토지",
+        "만기 5년 이상 보상채권을 만기까지 보유"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "PUBLIC",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20,
+      "selfFarmExemptCondition": "자경농지인 경우 농특세 비과세"
+    },
+    "PUBLIC_LAND_COMP": {
+      "code": "PUBLIC_LAND_COMP",
+      "name": "공익사업수용 감면 (대토보상)",
+      "legalBasis": "조세특례제한법 제77조의2",
+      "reliefType": "TAX",
+      "reliefRate": 40,
+      "description": "공익사업 수용 토지를 토지로 보상받는 경우",
+      "requirements": [
+        "사업인정고시일 2년 전 취득 토지",
+        "2026.12.31까지 양도",
+        "토지로 보상받는 부분"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "PUBLIC",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20,
+      "selfFarmExemptCondition": "자경농지인 경우 농특세 비과세"
+    },
+    "FOREST_LAND": {
+      "code": "FOREST_LAND",
+      "name": "산림지 양도 감면",
+      "legalBasis": "조세특례제한법 제69조의2",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "10년 이상 보유 산림지 양도 감면",
+      "requirements": [
+        "10년 이상 보유",
+        "산림경영계획 인가",
+        "양도일 현재 산림지 상태"
+      ],
+      "annualLimit": 100000000,
+      "fiveYearLimit": 200000000,
+      "limitGroup": "FARM",
+      "ruralSpecialTaxExempt": true,
+      "ruralSpecialTaxExemptReason": "농어촌특별세법 시행령 제4조 제1항 제1호"
+    },
+    "FISHING_LAND": {
+      "code": "FISHING_LAND",
+      "name": "어업용 토지 감면",
+      "legalBasis": "조세특례제한법 제69조의3",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "8년 이상 어업에 사용한 토지 양도 감면",
+      "requirements": [
+        "8년 이상 어업에 직접 사용",
+        "해당 지역 거주"
+      ],
+      "annualLimit": 100000000,
+      "fiveYearLimit": 200000000,
+      "limitGroup": "FARM",
+      "ruralSpecialTaxExempt": true,
+      "ruralSpecialTaxExemptReason": "농어촌특별세법 시행령 제4조 제1항 제1호"
+    },
+    "LIVESTOCK_LAND": {
+      "code": "LIVESTOCK_LAND",
+      "name": "축사용지 감면",
+      "legalBasis": "조세특례제한법 제69조 제1항",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "8년 이상 축산업에 사용한 축사용지 양도 감면",
+      "requirements": [
+        "8년 이상 축산업 직접 종사",
+        "양도일 현재 축사용지 상태"
+      ],
+      "annualLimit": 100000000,
+      "fiveYearLimit": 200000000,
+      "limitGroup": "FARM",
+      "ruralSpecialTaxExempt": true,
+      "ruralSpecialTaxExemptReason": "농어촌특별세법 시행령 제4조 제1항 제1호"
+    },
+    "LONG_TERM_RENTAL": {
+      "code": "LONG_TERM_RENTAL",
+      "name": "장기임대주택 감면",
+      "legalBasis": "조세특례제한법 제97조의3",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "장기일반민간임대주택 양도 감면",
+      "requirements": [
+        "10년 이상 임대 등록 및 운영",
+        "국토교통부장관에게 등록",
+        "임대료 증가율 5% 이내"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "HOUSING",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20
+    },
+    "VENTURE_STOCK": {
+      "code": "VENTURE_STOCK",
+      "name": "벤처기업 주식 감면",
+      "legalBasis": "조세특례제한법 제14조",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "벤처기업 창업자 등의 주식 양도 감면",
+      "requirements": [
+        "벤처기업 확인 기업",
+        "창업 초기 취득 주식"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "STOCK",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20
+    },
+    "SME_STOCK": {
+      "code": "SME_STOCK",
+      "name": "중소기업 주식 특례",
+      "legalBasis": "조세특례제한법 제14조의2",
+      "reliefType": "TAX",
+      "reliefRate": 50,
+      "description": "중소기업 창업투자조합 등을 통한 주식 양도 감면",
+      "requirements": [
+        "창업투자조합 등을 통한 투자",
+        "중소기업 주식"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "STOCK",
+      "ruralSpecialTaxExempt": false,
+      "ruralSpecialTaxRate": 20
+    },
+    "PUBLIC_RENTAL_CONTRIBUTION": {
+      "code": "PUBLIC_RENTAL_CONTRIBUTION",
+      "name": "공공임대주택 현물출자 감면",
+      "legalBasis": "조세특례제한법 제99조의2",
+      "reliefType": "TAX",
+      "reliefRate": 100,
+      "description": "공공임대주택에 현물출자 시 양도소득세 감면",
+      "requirements": [
+        "한국토지주택공사 등에 현물출자",
+        "공공임대주택 건설용"
+      ],
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "limitGroup": "PUBLIC",
+      "ruralSpecialTaxExempt": true,
+      "ruralSpecialTaxExemptReason": "농어촌특별세법 제4조 제2호"
+    }
+  },
+  "limitGroups": {
+    "FARM": {
+      "name": "농어업 관련 감면",
+      "description": "자경농지, 농지대토, 산림지, 어업용토지 등",
+      "annualLimit": 100000000,
+      "fiveYearLimit": 200000000,
+      "legalBasis": "조세특례제한법 제133조 제1항"
+    },
+    "PUBLIC": {
+      "name": "공익사업 관련 감면",
+      "description": "공익사업 수용 토지",
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "legalBasis": "조세특례제한법 제77조"
+    },
+    "HOUSING": {
+      "name": "주택 관련 감면",
+      "description": "장기임대주택 등",
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "legalBasis": "조세특례제한법 제97조의3"
+    },
+    "STOCK": {
+      "name": "주식 관련 감면",
+      "description": "벤처기업, 중소기업 주식 등",
+      "annualLimit": null,
+      "fiveYearLimit": null,
+      "legalBasis": "조세특례제한법 제14조"
+    }
+  },
+  "comprehensiveLimit": {
+    "description": "양도소득세 감면 종합한도",
+    "legalBasis": "조세특례제한법 제133조",
+    "annualLimit": 100000000,
+    "fiveYearLimit": 200000000,
+    "calculation": "과세기간별 한도(1억)와 5개 과세기간 합계 한도(2억) 중 초과액이 큰 금액 감면 배제",
+    "applicableCodes": ["SELF_FARM_8Y", "FARM_REPLACEMENT", "FOREST_LAND", "FISHING_LAND", "LIVESTOCK_LAND"]
+  }
+}

@@ -150,8 +150,127 @@ export function Step6Result() {
                     <td className="amount">(-) {formatKRW(result.mainResult.line17_prevTaxPaid)} 원</td>
                   </tr>
                   <tr className="total">
-                    <td>⑱ 납부할 세액</td>
+                    <td>⑱ 납부할 세액 (양도소득세)</td>
                     <td className="amount">{formatKRW(result.mainResult.line18_taxDue)} 원</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            {/* 농어촌특별세 */}
+            {result.mainResult.ruralSpecialTax && result.mainResult.line11_taxRelief > 0 && (
+              <section className="result-detail" style={{ marginTop: '1.5rem' }}>
+                <h3>농어촌특별세 (농특세법 제5조)</h3>
+                <table className="result-table">
+                  <tbody>
+                    <tr>
+                      <td>감면세액 합계</td>
+                      <td className="amount">{formatKRW(result.mainResult.line11_taxRelief)} 원</td>
+                    </tr>
+                    <tr>
+                      <td>농특세 과세 대상 감면액</td>
+                      <td className="amount">{formatKRW(result.mainResult.ruralSpecialTax.taxableReliefAmount)} 원</td>
+                    </tr>
+                    <tr>
+                      <td>농특세 비과세 감면액</td>
+                      <td className="amount">{formatKRW(result.mainResult.ruralSpecialTax.exemptReliefAmount)} 원</td>
+                    </tr>
+                    <tr>
+                      <td>세율</td>
+                      <td className="amount">{result.mainResult.ruralSpecialTax.taxRate}%</td>
+                    </tr>
+                    <tr className="highlight">
+                      <td>농어촌특별세액</td>
+                      <td className="amount">{formatKRW(result.mainResult.ruralSpecialTax.taxAmount)} 원</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* 농특세 상세 내역 */}
+                {result.mainResult.ruralSpecialTax.details.length > 0 && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>감면별 농특세 내역</h4>
+                    {result.mainResult.ruralSpecialTax.details.map((detail, idx) => (
+                      <div key={idx} style={{
+                        padding: '0.5rem',
+                        backgroundColor: detail.isExempt ? '#e8f5e9' : '#fff3e0',
+                        borderRadius: '4px',
+                        marginBottom: '0.5rem',
+                        fontSize: '0.85rem'
+                      }}>
+                        <div><strong>{detail.reliefName}</strong></div>
+                        <div>감면액: {formatKRW(detail.reliefAmount)}원</div>
+                        {detail.isExempt ? (
+                          <div style={{ color: '#2e7d32' }}>
+                            ✓ 비과세 ({detail.exemptReason})
+                          </div>
+                        ) : (
+                          <div style={{ color: '#e65100' }}>
+                            농특세: {formatKRW(detail.ruralTaxAmount)}원
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* 감면 한도 적용 결과 */}
+            {result.mainResult.reliefLimitResult && result.mainResult.reliefLimitResult.requestedAmount > 0 && (
+              <section className="result-detail" style={{ marginTop: '1.5rem' }}>
+                <h3>감면 종합한도 적용 (조특법 제133조)</h3>
+                <table className="result-table">
+                  <tbody>
+                    <tr>
+                      <td>한도 대상 감면 요청액</td>
+                      <td className="amount">{formatKRW(result.mainResult.reliefLimitResult.requestedAmount)} 원</td>
+                    </tr>
+                    <tr>
+                      <td>연간 한도</td>
+                      <td className="amount">{formatKRW(result.mainResult.reliefLimitResult.annualLimit)} 원</td>
+                    </tr>
+                    <tr>
+                      <td>5년 한도</td>
+                      <td className="amount">{formatKRW(result.mainResult.reliefLimitResult.fiveYearLimit)} 원</td>
+                    </tr>
+                    <tr>
+                      <td>직전 4년 사용액</td>
+                      <td className="amount">{formatKRW(result.mainResult.reliefLimitResult.prevFourYearsUsed)} 원</td>
+                    </tr>
+                    {result.mainResult.reliefLimitResult.exceededAmount > 0 && (
+                      <tr className="sub-row" style={{ color: '#c62828' }}>
+                        <td>한도 초과액 (감면 배제)</td>
+                        <td className="amount">{formatKRW(result.mainResult.reliefLimitResult.exceededAmount)} 원</td>
+                      </tr>
+                    )}
+                    <tr className="highlight">
+                      <td>한도 적용 후 감면액</td>
+                      <td className="amount">{formatKRW(result.mainResult.reliefLimitResult.limitedAmount)} 원</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+            )}
+
+            {/* 총 납부세액 요약 */}
+            <section className="result-summary" style={{ marginTop: '1.5rem' }}>
+              <h3>총 납부세액</h3>
+              <table className="result-table">
+                <tbody>
+                  <tr>
+                    <td>양도소득세</td>
+                    <td className="amount">{formatKRW(result.mainResult.line18_taxDue)} 원</td>
+                  </tr>
+                  {result.mainResult.ruralSpecialTax && result.mainResult.ruralSpecialTax.taxAmount > 0 && (
+                    <tr>
+                      <td>농어촌특별세</td>
+                      <td className="amount">{formatKRW(result.mainResult.ruralSpecialTax.taxAmount)} 원</td>
+                    </tr>
+                  )}
+                  <tr className="total">
+                    <td><strong>합계</strong></td>
+                    <td className="amount"><strong>{formatKRW(result.mainResult.totalTaxDue)} 원</strong></td>
                   </tr>
                 </tbody>
               </table>

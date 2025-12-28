@@ -192,13 +192,21 @@ export type BP2_2 = z.infer<typeof BP2_2Schema>;
 export const ReliefSchema = z.object({
   id: z.string().uuid(),
   assetId: z.string().uuid(),              // 대상 자산 ID
-  reliefCode: z.string(),                  // 감면코드
+  reliefCode: z.string(),                  // 감면코드 (SELF_FARM_8Y, PUBLIC_CASH 등)
   reliefName: z.string(),                  // 감면명
   reliefType: z.enum(['TAX', 'INCOME']),   // 세액감면/소득차감
   reliefRate: z.number().min(0).max(100),  // 감면율(%)
   reliefAmount: KRWAmount.default(0),      // 감면액 (자동계산)
   baseAmount: KRWAmount.default(0),        // 감면대상금액
   legalBasis: z.string().optional(),       // 법적근거
+
+  // 감면한도 관련 (조특법 제133조)
+  limitGroup: z.string().optional(),       // 감면한도 그룹 (FARM, PUBLIC, etc)
+  prevYearReliefUsed: KRWAmount.default(0), // 직전 4년 감면 사용액
+
+  // 농어촌특별세 관련
+  ruralSpecialTaxExempt: z.boolean().default(false), // 농특세 비과세 여부
+  isSelfFarmLand: z.boolean().default(false),        // 자경농지 여부 (공익사업 조건부 비과세용)
 });
 export type Relief = z.infer<typeof ReliefSchema>;
 
@@ -333,6 +341,48 @@ export const DerivedMainResultSchema = z.object({
   // 최종
   line17_prevTaxPaid: KRWAmount,           // ⑰ 기신고세액
   line18_taxDue: KRWAmount,                // ⑱ 납부할 세액
+
+  // 농어촌특별세 (농어촌특별세법 제5조)
+  ruralSpecialTax: z.object({
+    taxableReliefAmount: KRWAmount,        // 농특세 과세대상 감면액
+    exemptReliefAmount: KRWAmount,         // 농특세 비과세 감면액
+    taxRate: z.number(),                   // 세율 (20%)
+    taxAmount: KRWAmount,                  // 농어촌특별세액
+    details: z.array(z.object({
+      reliefCode: z.string(),
+      reliefName: z.string(),
+      reliefAmount: KRWAmount,
+      isExempt: z.boolean(),
+      exemptReason: z.string().optional(),
+      ruralTaxAmount: KRWAmount,
+    })),
+  }).default({
+    taxableReliefAmount: 0,
+    exemptReliefAmount: 0,
+    taxRate: 20,
+    taxAmount: 0,
+    details: [],
+  }),
+
+  // 감면한도 적용 결과 (조특법 제133조)
+  reliefLimitResult: z.object({
+    annualLimit: KRWAmount,                // 연간 한도 (1억)
+    fiveYearLimit: KRWAmount,              // 5년 한도 (2억)
+    requestedAmount: KRWAmount,            // 요청 감면액
+    limitedAmount: KRWAmount,              // 한도 적용 후 감면액
+    exceededAmount: KRWAmount,             // 한도 초과액 (감면 배제)
+    prevFourYearsUsed: KRWAmount,          // 직전 4년 사용액
+  }).default({
+    annualLimit: 100000000,
+    fiveYearLimit: 200000000,
+    requestedAmount: 0,
+    limitedAmount: 0,
+    exceededAmount: 0,
+    prevFourYearsUsed: 0,
+  }),
+
+  // 총 납부세액 (양도소득세 + 농어촌특별세)
+  totalTaxDue: KRWAmount,                  // 양도소득세 + 농특세
 
   // 세율구분 집계표
   rateCategorySummary: z.array(z.object({
