@@ -1,4 +1,4 @@
-// 양도소득세 계산 엔진
+// 양도소득세 계산 엔진 - 종합 구현
 import { v4 as uuidv4 } from 'uuid';
 import type {
   TaxCase,
@@ -27,6 +27,359 @@ import {
   type TaxBracket,
   type DeductionBucket,
 } from './utils';
+
+/**
+ * 보유기간 계산 유형
+ */
+type HoldingPeriodPurpose = 'ltDeduction' | 'rateApplication' | 'oneHouseExemption';
+
+/**
+ * 보유기간 계산 결과
+ */
+interface HoldingPeriodResult {
+  years: number;
+  months: number;
+  startDate: string;
+  endDate: string;
+  explanation: string;
+}
+
+/**
+ * 용도별 보유기간 계산 (소득세법 제95조, 제104조, 시행령 제154조)
+ *
+ * - ltDeduction: 장기보유특별공제용 (상속: 상속개시일부터, 이월과세: 증여자 취득일부터)
+ * - rateApplication: 세율적용용 (상속: 피상속인 취득일부터, 단기양도 판정)
+ * - oneHouseExemption: 1세대1주택 비과세용 (동일세대 상속: 피상속인 기간 통산)
+ */
+function calculateHoldingPeriodByPurpose(
+  asset: BP1Asset,
+  purpose: HoldingPeriodPurpose,
+  logs: CalculationLog[]
+): HoldingPeriodResult {
+  const transferDate = asset.transferDate;
+  let startDate = asset.acquireDate;
+  let explanation = '일반 취득일부터 기산';
+
+  // 상속자산 처리
+  if (asset.acquireCause === '7' && asset.inheritanceInfo?.enabled) {
+    const info = asset.inheritanceInfo;
+
+    switch (purpose) {
+      case 'ltDeduction':
+        // 장기보유특별공제: 상속개시일부터 (가업상속공제 예외)
+        if (info.businessSuccession && info.decedentAcquireDate) {
+          startDate = info.decedentAcquireDate;
+          explanation = '가업상속공제 적용 자산 - 피상속인 취득일부터 (소득세법 제95조 제4항 단서)';
+        } else {
+          startDate = info.inheritanceDate ?? asset.acquireDate;
+          explanation = '상속자산 장기보유특별공제 - 상속개시일부터 (대법원 97누10949)';
+        }
+        break;
+
+      case 'rateApplication':
+        // 세율적용(단기양도): 피상속인 취득일부터 (단기중과 회피)
+        if (info.decedentAcquireDate) {
+          startDate = info.decedentAcquireDate;
+          explanation = '상속자산 세율적용 - 피상속인 취득일부터 기산 (단기양도 중과 회피)';
+        }
+        break;
+
+      case 'oneHouseExemption':
+        // 1세대1주택 비과세: 동일세대면 피상속인 기간 통산
+        if (info.sameHousehold && info.decedentAcquireDate) {
+          startDate = info.decedentAcquireDate;
+          explanation = '동일세대 상속 - 피상속인 보유기간 통산 (소득세법 시행령 제154조 제5항)';
+        } else {
+          startDate = info.inheritanceDate ?? asset.acquireDate;
+          explanation = '별도세대 상속 - 상속개시일부터 기산';
+        }
+        break;
+    }
+  }
+
+  // 이월과세 적용 자산
+  if (asset.carryoverTax?.enabled && asset.carryoverTax.giftDate) {
+    const exclusionReason = asset.carryoverTax.exclusionReason ?? 'NONE';
+    const shouldExcludeForOneHouse = asset.userFlags.oneHouseExemption && !asset.userFlags.highValueHousing;
+
+    if (exclusionReason === 'NONE' && !shouldExcludeForOneHouse) {
+      if (purpose === 'ltDeduction' && asset.carryoverTax.donorAcquireDate) {
+        startDate = asset.carryoverTax.donorAcquireDate;
+        explanation = '이월과세 적용 - 증여자 취득일부터 (소득세법 제97조의2, 제95조 제4항)';
+      }
+    }
+  }
+
+  const years = calculateHoldingYears(startDate, transferDate);
+  const months = calculateHoldingMonths(startDate, transferDate);
+
+  logs.push({
+    step: `CALC-HOLDING-${purpose.toUpperCase()}`,
+    description: `보유기간 계산 (${purpose})`,
+    values: {
+      purpose,
+      startDate,
+      endDate: transferDate,
+      years,
+      months,
+      explanation,
+    },
+  });
+
+  return {
+    years,
+    months,
+    startDate,
+    endDate: transferDate,
+    explanation,
+  };
+}
+
+/**
+ * 취득원인별 취득가액 계산 (소득세법 시행령 제163조)
+ */
+function calculateAcquirePriceByCause(
+  asset: BP1Asset,
+  logs: CalculationLog[]
+): { acquirePrice: number; explanation: string } {
+  const cause = asset.acquireCause ?? '1'; // 기본값: 매매
+  let acquirePrice = asset.acquirePrice;
+  let explanation = '실지거래가액';
+
+  switch (cause) {
+    case '7': // 상속
+      if (asset.inheritanceInfo?.enabled && asset.inheritanceInfo.inheritanceTaxValue > 0) {
+        acquirePrice = asset.inheritanceInfo.inheritanceTaxValue;
+        explanation = '상속세 평가액 (소득세법 시행령 제163조 제9항)';
+      }
+      break;
+
+    case '8': // 증여
+      // 이월과세 적용 시 증여자 취득가액
+      if (asset.carryoverTax?.enabled) {
+        const exclusionReason = asset.carryoverTax.exclusionReason ?? 'NONE';
+        const shouldExcludeForOneHouse = asset.userFlags.oneHouseExemption && !asset.userFlags.highValueHousing;
+
+        if (exclusionReason === 'NONE' && !shouldExcludeForOneHouse && asset.carryoverTax.donorAcquireCost > 0) {
+          acquirePrice = asset.carryoverTax.donorAcquireCost;
+          explanation = '이월과세 적용 - 증여자 취득가액 (소득세법 제97조의2)';
+        }
+      }
+      // 이월과세 미적용 시 증여세 평가액 사용
+      break;
+
+    case '2': // 수용
+    case '3': // 협의매수
+      explanation = '보상가액';
+      break;
+
+    case '4': // 교환
+      explanation = '교환취득 자산의 시가';
+      break;
+
+    case '5': // 공매
+    case '6': // 경매
+      explanation = '낙찰가액';
+      break;
+
+    case '9': // 신축
+      explanation = '건축비 + 토지취득가액';
+      break;
+  }
+
+  logs.push({
+    step: 'CALC-ACQUIRE-PRICE',
+    description: '취득원인별 취득가액 결정',
+    values: {
+      acquireCause: cause,
+      acquirePrice,
+      explanation,
+    },
+  });
+
+  return { acquirePrice, explanation };
+}
+
+/**
+ * 1세대1주택 비과세 요건 검증 (소득세법 시행령 제154조)
+ */
+interface OneHouseExemptionResult {
+  eligible: boolean;
+  holdingRequirementMet: boolean;
+  residenceRequirementMet: boolean;
+  effectiveHoldingYears: number;
+  effectiveResidenceYears: number;
+  holdingExempt: boolean;
+  residenceExempt: boolean;
+  exemptionReasons: string[];
+  warnings: string[];
+}
+
+function validateOneHouseExemption(
+  asset: BP1Asset,
+  logs: CalculationLog[]
+): OneHouseExemptionResult {
+  const result: OneHouseExemptionResult = {
+    eligible: false,
+    holdingRequirementMet: false,
+    residenceRequirementMet: false,
+    effectiveHoldingYears: 0,
+    effectiveResidenceYears: 0,
+    holdingExempt: false,
+    residenceExempt: false,
+    exemptionReasons: [],
+    warnings: [],
+  };
+
+  // 주택이 아니면 비과세 대상 아님
+  if (asset.assetTypeCode !== '2') {
+    result.warnings.push('주택(자산종류코드 2)이 아닌 자산입니다.');
+    return result;
+  }
+
+  // 미등기면 비과세 불가
+  if (asset.userFlags.unregistered) {
+    result.warnings.push('미등기 자산은 1세대1주택 비과세 적용 불가');
+    return result;
+  }
+
+  // 보유기간 계산 (1세대1주택용)
+  const holdingResult = calculateHoldingPeriodByPurpose(asset, 'oneHouseExemption', logs);
+  result.effectiveHoldingYears = holdingResult.years;
+
+  // 거주기간 계산
+  let effectiveResidenceYears = asset.residenceYears ?? 0;
+
+  // 동일세대 상속 시 피상속인 거주기간 통산
+  if (asset.acquireCause === '7' && asset.inheritanceInfo?.enabled && asset.inheritanceInfo.sameHousehold) {
+    effectiveResidenceYears += asset.inheritanceInfo.decedentResidenceYears ?? 0;
+  }
+
+  // 1세대1주택 상세정보 사용
+  if (asset.oneHouseExemptionDetail?.enabled) {
+    const detail = asset.oneHouseExemptionDetail;
+    result.effectiveHoldingYears = detail.actualHoldingYears + detail.inheritedHoldingYears;
+    effectiveResidenceYears = detail.actualResidenceYears + detail.inheritedResidenceYears;
+
+    // 보유요건 면제
+    if (detail.holdingExemptReason !== 'NONE') {
+      result.holdingExempt = true;
+      result.exemptionReasons.push(`보유요건 면제: ${detail.holdingExemptReason}`);
+    }
+
+    // 거주요건 면제
+    if (detail.residenceExemptReason !== 'NONE') {
+      result.residenceExempt = true;
+      result.exemptionReasons.push(`거주요건 면제: ${detail.residenceExemptReason}`);
+    }
+  }
+
+  result.effectiveResidenceYears = effectiveResidenceYears;
+
+  // 보유요건 검증 (2년)
+  result.holdingRequirementMet = result.holdingExempt || result.effectiveHoldingYears >= 2;
+
+  // 거주요건 검증 (조정대상지역: 2년 거주)
+  const requireResidence = asset.adjustedAreaInfo?.acquiredInAdjustedArea ?? asset.userFlags.adjustedArea;
+
+  if (requireResidence) {
+    result.residenceRequirementMet = result.residenceExempt || effectiveResidenceYears >= 2;
+    if (!result.residenceRequirementMet) {
+      result.warnings.push('조정대상지역 취득 주택은 2년 이상 거주 필요');
+    }
+  } else {
+    result.residenceRequirementMet = true; // 비조정지역은 거주요건 없음
+  }
+
+  // 최종 판정
+  result.eligible = result.holdingRequirementMet && result.residenceRequirementMet;
+
+  logs.push({
+    step: 'CALC-ONEHOUSE-EXEMPT',
+    description: '1세대1주택 비과세 요건 검증 (소득세법 시행령 제154조)',
+    values: {
+      eligible: result.eligible ? 1 : 0,
+      holdingYears: result.effectiveHoldingYears,
+      residenceYears: result.effectiveResidenceYears,
+      requireResidence: requireResidence ? 1 : 0,
+      holdingExempt: result.holdingExempt ? 1 : 0,
+      residenceExempt: result.residenceExempt ? 1 : 0,
+    },
+  });
+
+  return result;
+}
+
+/**
+ * 분양권/조합원입주권 세율 결정 (소득세법 제104조)
+ */
+interface PresaleRateResult {
+  rateCode: string;
+  rate: number;
+  description: string;
+}
+
+function getPresaleOrMembershipRate(
+  assetTypeCode: string,
+  holdingMonths: number,
+  transferDate: string,
+  logs: CalculationLog[]
+): PresaleRateResult {
+  const isPresaleRight = assetTypeCode === '26'; // 분양권
+  const isMembershipRight = assetTypeCode === '25'; // 조합원입주권
+
+  if (!isPresaleRight && !isMembershipRight) {
+    return { rateCode: '1-10', rate: 0, description: '해당없음' };
+  }
+
+  // 2021년 6월 1일 이후 양도분 기준
+  const effectiveDate = new Date('2021-06-01');
+  const transferDateObj = new Date(transferDate);
+  const isAfterEffective = transferDateObj >= effectiveDate;
+
+  let rate: number;
+  let description: string;
+  let rateCode: string;
+
+  if (holdingMonths < 12) {
+    // 1년 미만
+    rate = 70;
+    description = '1년 미만 보유';
+    rateCode = isPresaleRight ? '1-38' : '1-23';
+  } else if (holdingMonths < 24) {
+    // 1-2년
+    rate = 60;
+    description = '1년 이상 2년 미만 보유';
+    rateCode = isPresaleRight ? '1-39' : '1-23';
+  } else {
+    // 2년 이상
+    if (isPresaleRight) {
+      // 분양권은 2년 이상도 60%
+      rate = 60;
+      description = '분양권 2년 이상 - 60% 고정 (기본세율 미적용)';
+      rateCode = '1-40';
+    } else {
+      // 조합원입주권은 기본세율
+      rate = 0; // 기본세율 적용
+      description = '조합원입주권 2년 이상 - 기본세율';
+      rateCode = '1-30';
+    }
+  }
+
+  logs.push({
+    step: 'CALC-PRESALE-RATE',
+    description: '분양권/조합원입주권 세율 결정',
+    values: {
+      assetTypeCode,
+      holdingMonths,
+      rate,
+      rateCode,
+      explanation: description,
+    },
+  });
+
+  return { rateCode, rate, description };
+}
 
 /**
  * 이월과세 기간 검증 (소득세법 제97조의2)
@@ -254,21 +607,46 @@ function calculateBP3Totals(bp3?: BP1Asset['bp3']): {
 }
 
 /**
- * 부표1 자산 계산
+ * 부표1 자산 계산 - 종합 구현
+ * 상속/증여/매매 등 취득원인별 처리, 보유기간 용도별 계산,
+ * 1세대1주택 비과세 검증, 분양권/조합원입주권 세율 체계
  */
 function calculateBP1Asset(
   asset: BP1Asset,
   rulePack: ReturnType<typeof getRulePack>,
   logs: CalculationLog[]
 ): DerivedAssetResult {
-  const rateInfo = getRateInfo(asset.rateCode, rulePack, asset.transferDate);
+  // 1세대1주택 비과세 요건 검증 (주택인 경우)
+  let oneHouseExemptionResult: OneHouseExemptionResult | null = null;
+  if (asset.assetTypeCode === '2' && asset.userFlags.oneHouseExemption) {
+    oneHouseExemptionResult = validateOneHouseExemption(asset, logs);
+  }
+
+  // 분양권/조합원입주권 세율 자동 결정
+  let effectiveRateCode = asset.rateCode;
+  const isPresaleOrMembership = asset.assetTypeCode === '25' || asset.assetTypeCode === '26';
+
+  if (isPresaleOrMembership) {
+    const holdingMonths = calculateHoldingMonths(asset.acquireDate, asset.transferDate);
+    const presaleRate = getPresaleOrMembershipRate(
+      asset.assetTypeCode,
+      holdingMonths,
+      asset.transferDate,
+      logs
+    );
+    effectiveRateCode = presaleRate.rateCode;
+  }
+
+  const rateInfo = getRateInfo(effectiveRateCode, rulePack, asset.transferDate);
 
   // 부표3 합계
   const bp3Totals = calculateBP3Totals(asset.bp3);
 
-  // 유효 취득가액 (환산취득가액 반영)
-  let effectiveAcquirePrice = asset.acquirePrice;
+  // 취득원인별 취득가액 결정
+  const acquirePriceResult = calculateAcquirePriceByCause(asset, logs);
+  let effectiveAcquirePrice = acquirePriceResult.acquirePrice;
 
+  // 환산취득가액 처리 (실거래가액 불분명시)
   if (asset.acquirePriceType === 'CONVERTED' &&
       asset.stdValueAcquireBuilding !== undefined &&
       asset.stdValueAcquireLand !== undefined &&
@@ -291,6 +669,22 @@ function calculateBP1Asset(
     });
   }
 
+  // 상속자산 취득가액 처리 (상속세 평가액)
+  if (asset.acquireCause === '7' && asset.inheritanceInfo?.enabled) {
+    if (asset.inheritanceInfo.inheritanceTaxValue > 0) {
+      effectiveAcquirePrice = asset.inheritanceInfo.inheritanceTaxValue;
+      logs.push({
+        step: 'CALC-INHERIT-PRICE',
+        description: '상속자산 취득가액 (상속세 평가액)',
+        values: {
+          inheritanceTaxValue: asset.inheritanceInfo.inheritanceTaxValue,
+          inheritanceDate: asset.inheritanceInfo.inheritanceDate ?? '',
+          decedentAcquireCause: asset.inheritanceInfo.decedentAcquireCause ?? '',
+        },
+      });
+    }
+  }
+
   // 부담부증여 처리
   if (asset.giftWithDebt?.enabled) {
     const portion = calculateGiftWithDebtPortion(
@@ -298,7 +692,6 @@ function calculateBP1Asset(
       asset.giftWithDebt.debtAmount,
       asset.giftWithDebt.donorAcquireCost
     );
-    // 양도로 보는 부분만 계산 (채무 비율만큼)
     effectiveAcquirePrice = portion.acquirePricePortion;
     logs.push({
       step: 'CALC-GIFT-159',
@@ -316,14 +709,10 @@ function calculateBP1Asset(
   let carryoverGiftTaxExpense = 0;
 
   if (asset.carryoverTax?.enabled && asset.carryoverTax.giftDate) {
-    // 적용배제 사유 확인
     const exclusionReason = asset.carryoverTax.exclusionReason ?? 'NONE';
-
-    // 1세대 1주택 비과세인 경우 이월과세 자동 배제
     const shouldExcludeForOneHouse = asset.userFlags.oneHouseExemption && !asset.userFlags.highValueHousing;
 
     if (exclusionReason === 'NONE' && !shouldExcludeForOneHouse) {
-      // 이월과세 기간 검증
       const periodValidation = validateCarryoverTaxPeriod(
         'realEstate',
         asset.carryoverTax.giftDate,
@@ -366,19 +755,19 @@ function calculateBP1Asset(
     }
   }
 
-  // 유효 취득가액에 부표3 합계 반영 (있으면 대체, 단 이월과세 미적용 시)
-  if (bp3Totals.acquireTotal > 0 && !carryoverTaxApplied) {
+  // 부표3 합계 반영 (이월과세/상속 미적용 시)
+  if (bp3Totals.acquireTotal > 0 && !carryoverTaxApplied &&
+      !(asset.acquireCause === '7' && asset.inheritanceInfo?.enabled)) {
     effectiveAcquirePrice = bp3Totals.acquireTotal;
   }
 
-  // 기본 필요경비 (부표3)
+  // 필요경비
   let effectiveExpense = bp3Totals.expenseTotal;
 
   // 양도차익 계산 (증여세 상당액 적용 전)
   const transferGainBeforeGiftTax = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
 
   // 이월과세 증여세 상당액 필요경비 산입 (시행령 제163조의2 제2항)
-  // 양도차익을 한도로 함
   if (carryoverTaxApplied && asset.carryoverTax?.giftTaxPaid) {
     const giftTaxResult = calculateCarryoverGiftTaxExpense(
       asset.carryoverTax.giftTaxPaid,
@@ -403,7 +792,7 @@ function calculateBP1Asset(
     });
   }
 
-  // 전체 양도차익 (증여세 상당액 포함)
+  // 전체 양도차익
   const transferGainTotal = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
 
   logs.push({
@@ -437,39 +826,46 @@ function calculateBP1Asset(
     });
   }
 
-  // 장기보유특별공제
-  // 이월과세 적용 시 보유기간은 증여자 취득일부터 기산 (소득세법 제97조의2)
-  let effectiveAcquireDate = asset.acquireDate;
-  if (carryoverTaxApplied && asset.carryoverTax?.donorAcquireDate) {
-    effectiveAcquireDate = asset.carryoverTax.donorAcquireDate;
+  // 장기보유특별공제 - 용도별 보유기간 계산 사용
+  const holdingForLtDeduction = calculateHoldingPeriodByPurpose(asset, 'ltDeduction', logs);
+  const holdingYears = asset.holdingYears ?? holdingForLtDeduction.years;
+  const residenceYears = asset.residenceYears ?? 0;
+
+  // 상속자산 1세대1주택 거주기간 통산
+  let effectiveResidenceYears = residenceYears;
+  if (asset.acquireCause === '7' && asset.inheritanceInfo?.enabled &&
+      asset.inheritanceInfo.sameHousehold && asset.userFlags.oneHouseExemption) {
+    effectiveResidenceYears += asset.inheritanceInfo.decedentResidenceYears ?? 0;
     logs.push({
-      step: 'CALC-CARRY-HOLDING',
-      description: '이월과세 보유기간 기산일 (증여자 취득일)',
+      step: 'CALC-INHERIT-RESIDENCE',
+      description: '동일세대 상속 거주기간 통산',
       values: {
-        originalAcquireDate: asset.acquireDate,
-        donorAcquireDate: asset.carryoverTax.donorAcquireDate,
+        ownResidenceYears: residenceYears,
+        decedentResidenceYears: asset.inheritanceInfo.decedentResidenceYears ?? 0,
+        totalResidenceYears: effectiveResidenceYears,
       },
     });
   }
-  const holdingYears = asset.holdingYears ?? calculateHoldingYears(effectiveAcquireDate, asset.transferDate);
-  const residenceYears = asset.residenceYears ?? 0;
 
   let ltDeductionRate = 0;
   let ltDeductionAmount = 0;
   let taxableLtDeduction = 0;
 
-  // 미등기/비사업용토지 등 배제 조건 확인
-  if (!asset.userFlags.unregistered && asset.ltDeductionCode !== '03') {
+  // 미등기/비사업용토지/분양권 등 배제 조건 확인
+  const ltDeductionExcluded = asset.userFlags.unregistered ||
+    asset.ltDeductionCode === '03' ||
+    asset.assetTypeCode === '26'; // 분양권은 장특공 배제
+
+  if (!ltDeductionExcluded) {
     ltDeductionRate = calculateLtDeductionRate(
       asset.ltDeductionCode,
       holdingYears,
-      residenceYears,
+      asset.userFlags.oneHouseExemption ? effectiveResidenceYears : residenceYears,
       rulePack
     );
 
     ltDeductionAmount = roundToWon(transferGainTotal * (ltDeductionRate / 100));
 
-    // 고가주택 안분
     if (highValueRatio > 0) {
       taxableLtDeduction = roundToWon(ltDeductionAmount * highValueRatio);
     } else {
@@ -482,7 +878,7 @@ function calculateBP1Asset(
       values: {
         ltDeductionCode: asset.ltDeductionCode,
         holdingYears,
-        residenceYears,
+        residenceYears: asset.userFlags.oneHouseExemption ? effectiveResidenceYears : residenceYears,
         ltDeductionRate,
         ltDeductionAmount,
         taxableLtDeduction,
@@ -503,6 +899,28 @@ function calculateBP1Asset(
     },
   });
 
+  // 세율적용 보유기간 계산 (단기양도 판정용 - 상속자산은 피상속인 취득일부터)
+  const holdingForRate = calculateHoldingPeriodByPurpose(asset, 'rateApplication', logs);
+
+  // 세율코드 자동 조정 (단기양도)
+  let finalRateCode = effectiveRateCode;
+  if (!asset.userFlags.unregistered && !isPresaleOrMembership) {
+    const shortTermType = getShortTermType(holdingForRate.startDate, asset.transferDate);
+    if (shortTermType === 'UNDER_1Y' && !effectiveRateCode.includes('15')) {
+      // 1년 미만 단기양도 (50%)
+      if (['1', '2', '3', '4'].includes(asset.assetTypeCode)) {
+        finalRateCode = asset.assetTypeCode === '2' ? '1-50' : '1-15';
+      }
+    } else if (shortTermType === '1Y_TO_2Y' && !effectiveRateCode.includes('21')) {
+      // 1-2년 (40%)
+      if (['1', '2', '3', '4'].includes(asset.assetTypeCode)) {
+        finalRateCode = asset.assetTypeCode === '2' ? '1-51' : '1-21';
+      }
+    }
+  }
+
+  const finalRateInfo = getRateInfo(finalRateCode, rulePack, asset.transferDate);
+
   return {
     assetId: asset.id,
     assetType: 'BP1',
@@ -516,12 +934,12 @@ function calculateBP1Asset(
     ltDeductionAmount,
     taxableLtDeduction,
     gainIncome,
-    rateCode: asset.rateCode,
-    rateType: rateInfo.type,
-    rateValue: rateInfo.flatRate,
-    additionalRate: rateInfo.additionalRate,
-    taxBaseByAsset: gainIncome, // 기본공제 전
-    taxByAsset: 0, // 나중에 계산
+    rateCode: finalRateCode,
+    rateType: finalRateInfo.type,
+    rateValue: finalRateInfo.flatRate,
+    additionalRate: finalRateInfo.additionalRate,
+    taxBaseByAsset: gainIncome,
+    taxByAsset: 0,
     basicDeductionAllocated: 0,
   };
 }

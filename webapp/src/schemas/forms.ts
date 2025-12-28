@@ -75,6 +75,40 @@ export const BP1AssetSchema = z.object({
   transferCause: TransferAcquireTypeEnum.optional(), // 양도원인
   acquireCause: TransferAcquireTypeEnum.optional(),  // 취득원인
 
+  // 상속 정보 (취득원인이 상속인 경우)
+  inheritanceInfo: z.object({
+    enabled: z.boolean().default(false),
+    inheritanceDate: DateString.optional(),           // 상속개시일 (피상속인 사망일)
+    decedentAcquireDate: DateString.optional(),       // 피상속인 취득일
+    decedentAcquireCost: KRWAmount.default(0),        // 피상속인 취득가액
+    decedentAcquireCause: TransferAcquireTypeEnum.optional(), // 피상속인 취득원인
+    inheritanceTaxValue: KRWAmount.default(0),        // 상속세 평가액
+    sameHousehold: z.boolean().default(false),        // 동일세대 여부 (1세대1주택 비과세용)
+    decedentHoldingYears: z.number().int().min(0).default(0),   // 피상속인 보유기간(년)
+    decedentResidenceYears: z.number().int().min(0).default(0), // 피상속인 거주기간(년)
+    businessSuccession: z.boolean().default(false),   // 가업상속공제 적용 여부
+  }).optional(),
+
+  // 원천취득정보 (연쇄증여/상속 추적용)
+  originalAcquisition: z.object({
+    enabled: z.boolean().default(false),
+    originalAcquireDate: DateString.optional(),       // 최초 취득일
+    originalAcquireCost: KRWAmount.default(0),        // 최초 취득가액
+    originalAcquireCause: TransferAcquireTypeEnum.optional(), // 최초 취득원인
+    chainHistory: z.array(z.object({
+      date: DateString,
+      cause: TransferAcquireTypeEnum,
+      value: KRWAmount,
+    })).optional(),
+  }).optional(),
+
+  // 조정대상지역 정보 (1세대1주택 거주요건용)
+  adjustedAreaInfo: z.object({
+    acquiredInAdjustedArea: z.boolean().default(false),  // 취득 당시 조정대상지역 여부
+    currentlyAdjustedArea: z.boolean().default(false),   // 현재 조정대상지역 여부
+    adjustedAreaAcquireDate: DateString.optional(),      // 조정대상지역 지정 후 취득일
+  }).optional(),
+
   // 소재지/상세
   location: z.string().optional(),         // 소재지
   area: z.number().optional(),             // 면적(㎡)
@@ -116,6 +150,38 @@ export const BP1AssetSchema = z.object({
     oneHouseExemption: false,
     highValueHousing: false,
   }),
+
+  // 1세대1주택 비과세 상세 정보 (소득세법 시행령 제154조)
+  oneHouseExemptionDetail: z.object({
+    enabled: z.boolean().default(false),
+    // 보유/거주기간
+    actualHoldingYears: z.number().min(0).default(0),   // 실제 보유기간(년)
+    actualResidenceYears: z.number().min(0).default(0), // 실제 거주기간(년)
+    // 상속 통산 (동일세대)
+    inheritedHoldingYears: z.number().min(0).default(0),  // 피상속인 보유기간 통산(년)
+    inheritedResidenceYears: z.number().min(0).default(0), // 피상속인 거주기간 통산(년)
+    // 보유/거주요건 면제 사유
+    holdingExemptReason: z.enum([
+      'NONE',
+      'OVERSEAS_EMIGRATION',      // 해외이주
+      'OVERSEAS_WORK_STUDY',      // 해외 취학/근무
+      'RENTAL_HOUSING_RESIDENCE', // 건설임대주택 5년 거주
+    ]).default('NONE'),
+    residenceExemptReason: z.enum([
+      'NONE',
+      'WORK_STUDY_ILLNESS',         // 취학/근무/질병 사유
+      'PRE_ADJUSTED_AREA_CONTRACT', // 조정지역 고시 전 계약
+    ]).default('NONE'),
+    // 일시적 2주택 등 예외 사유
+    temporaryExemptReason: z.enum([
+      'NONE',
+      'TEMPORARY_2HOUSE',    // 일시적 2주택
+      'INHERITED_HOUSE',     // 상속주택
+      'MARRIAGE_MERGE',      // 혼인합가
+      'ELDERLY_CARE',        // 동거봉양
+      'RURAL_RELOCATION',    // 귀농
+    ]).default('NONE'),
+  }).optional(),
 
   // 부담부증여 정보
   giftWithDebt: z.object({
