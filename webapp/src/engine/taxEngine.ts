@@ -28,6 +28,67 @@ import {
   type DeductionBucket,
 } from './utils';
 
+/**
+ * 이월과세 기간 검증 (소득세법 제97조의2)
+ * - 부동산: 2023년 이후 증여분 10년, 2022년 이전 5년
+ * - 주식: 1년 (2025년 시행)
+ */
+function validateCarryoverTaxPeriod(
+  assetType: 'realEstate' | 'stock',
+  giftDate: string,
+  transferDate: string
+): { valid: boolean; periodYears: number; elapsedYears: number } {
+  const gift = new Date(giftDate);
+  const transfer = new Date(transferDate);
+  const elapsedMs = transfer.getTime() - gift.getTime();
+  const elapsedYears = elapsedMs / (1000 * 60 * 60 * 24 * 365.25);
+
+  let periodYears: number;
+
+  if (assetType === 'stock') {
+    // 주식: 1년
+    periodYears = 1;
+  } else {
+    // 부동산: 2023년 이후 증여분 10년, 이전 5년
+    const amendmentDate = new Date('2023-01-01');
+    periodYears = gift >= amendmentDate ? 10 : 5;
+  }
+
+  return {
+    valid: elapsedYears <= periodYears,
+    periodYears,
+    elapsedYears: Math.floor(elapsedYears * 10) / 10,
+  };
+}
+
+/**
+ * 이월과세 증여세 상당액 계산 (시행령 제163조의2)
+ * - 양도차익을 한도로 함
+ * - 여러 자산 증여 시 안분 계산
+ */
+function calculateCarryoverGiftTaxExpense(
+  giftTaxPaid: number,
+  giftTaxBase: number,
+  totalGiftTaxBase: number,
+  transferGain: number
+): { giftTaxExpense: number; limited: boolean; limitedAmount: number } {
+  // 안분 계산 (여러 자산을 함께 증여받은 경우)
+  let allocatedGiftTax = giftTaxPaid;
+  if (totalGiftTaxBase > 0 && giftTaxBase > 0 && giftTaxBase < totalGiftTaxBase) {
+    allocatedGiftTax = roundToWon(giftTaxPaid * (giftTaxBase / totalGiftTaxBase));
+  }
+
+  // 양도차익 한도 적용 (시행령 제163조의2 제2항)
+  const maxAllowed = Math.max(0, transferGain);
+  const giftTaxExpense = Math.min(allocatedGiftTax, maxAllowed);
+
+  return {
+    giftTaxExpense,
+    limited: allocatedGiftTax > maxAllowed,
+    limitedAmount: Math.max(0, allocatedGiftTax - maxAllowed),
+  };
+}
+
 interface CalculationLog {
   step: string;
   description: string;
@@ -250,28 +311,99 @@ function calculateBP1Asset(
     });
   }
 
-  // 이월과세 처리
-  if (asset.carryoverTax?.enabled) {
-    effectiveAcquirePrice = asset.carryoverTax.donorAcquireCost;
-    // 증여세 상당액은 필요경비에 가산
+  // 이월과세 처리 (소득세법 제97조의2)
+  let carryoverTaxApplied = false;
+  let carryoverGiftTaxExpense = 0;
+
+  if (asset.carryoverTax?.enabled && asset.carryoverTax.giftDate) {
+    // 적용배제 사유 확인
+    const exclusionReason = asset.carryoverTax.exclusionReason ?? 'NONE';
+
+    // 1세대 1주택 비과세인 경우 이월과세 자동 배제
+    const shouldExcludeForOneHouse = asset.userFlags.oneHouseExemption && !asset.userFlags.highValueHousing;
+
+    if (exclusionReason === 'NONE' && !shouldExcludeForOneHouse) {
+      // 이월과세 기간 검증
+      const periodValidation = validateCarryoverTaxPeriod(
+        'realEstate',
+        asset.carryoverTax.giftDate,
+        asset.transferDate
+      );
+
+      if (periodValidation.valid) {
+        carryoverTaxApplied = true;
+        effectiveAcquirePrice = asset.carryoverTax.donorAcquireCost;
+
+        logs.push({
+          step: 'CALC-CARRY-972',
+          description: '이월과세 취득가액 (소득세법 제97조의2)',
+          values: {
+            donorAcquireCost: asset.carryoverTax.donorAcquireCost,
+            giftTaxPaid: asset.carryoverTax.giftTaxPaid,
+            giftDate: asset.carryoverTax.giftDate,
+            periodYears: periodValidation.periodYears,
+            elapsedYears: periodValidation.elapsedYears,
+          },
+        });
+      } else {
+        logs.push({
+          step: 'CALC-CARRY-PERIOD-EXCEED',
+          description: '이월과세 기간 초과로 미적용',
+          values: {
+            periodYears: periodValidation.periodYears,
+            elapsedYears: periodValidation.elapsedYears,
+          },
+        });
+      }
+    } else {
+      logs.push({
+        step: 'CALC-CARRY-EXCLUDED',
+        description: '이월과세 적용배제',
+        values: {
+          reason: shouldExcludeForOneHouse ? '1세대1주택비과세' : exclusionReason,
+        },
+      });
+    }
+  }
+
+  // 유효 취득가액에 부표3 합계 반영 (있으면 대체, 단 이월과세 미적용 시)
+  if (bp3Totals.acquireTotal > 0 && !carryoverTaxApplied) {
+    effectiveAcquirePrice = bp3Totals.acquireTotal;
+  }
+
+  // 기본 필요경비 (부표3)
+  let effectiveExpense = bp3Totals.expenseTotal;
+
+  // 양도차익 계산 (증여세 상당액 적용 전)
+  const transferGainBeforeGiftTax = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
+
+  // 이월과세 증여세 상당액 필요경비 산입 (시행령 제163조의2 제2항)
+  // 양도차익을 한도로 함
+  if (carryoverTaxApplied && asset.carryoverTax?.giftTaxPaid) {
+    const giftTaxResult = calculateCarryoverGiftTaxExpense(
+      asset.carryoverTax.giftTaxPaid,
+      asset.carryoverTax.giftTaxBase ?? asset.carryoverTax.giftTaxPaid,
+      asset.carryoverTax.totalGiftTaxBase ?? asset.carryoverTax.giftTaxBase ?? asset.carryoverTax.giftTaxPaid,
+      transferGainBeforeGiftTax
+    );
+
+    carryoverGiftTaxExpense = giftTaxResult.giftTaxExpense;
+    effectiveExpense += carryoverGiftTaxExpense;
+
     logs.push({
-      step: 'CALC-CARRY-972',
-      description: '이월과세 취득가액',
+      step: 'CALC-CARRY-GIFTTAX',
+      description: '이월과세 증여세 상당액 필요경비 (시행령 제163조의2)',
       values: {
-        donorAcquireCost: asset.carryoverTax.donorAcquireCost,
         giftTaxPaid: asset.carryoverTax.giftTaxPaid,
+        giftTaxExpense: carryoverGiftTaxExpense,
+        transferGainLimit: transferGainBeforeGiftTax,
+        limited: giftTaxResult.limited ? 1 : 0,
+        limitedAmount: giftTaxResult.limitedAmount,
       },
     });
   }
 
-  // 유효 취득가액에 부표3 합계 반영 (있으면 대체)
-  if (bp3Totals.acquireTotal > 0) {
-    effectiveAcquirePrice = bp3Totals.acquireTotal;
-  }
-
-  const effectiveExpense = bp3Totals.expenseTotal + (asset.carryoverTax?.giftTaxPaid ?? 0);
-
-  // 전체 양도차익
+  // 전체 양도차익 (증여세 상당액 포함)
   const transferGainTotal = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
 
   logs.push({
@@ -306,7 +438,20 @@ function calculateBP1Asset(
   }
 
   // 장기보유특별공제
-  const holdingYears = asset.holdingYears ?? calculateHoldingYears(asset.acquireDate, asset.transferDate);
+  // 이월과세 적용 시 보유기간은 증여자 취득일부터 기산 (소득세법 제97조의2)
+  let effectiveAcquireDate = asset.acquireDate;
+  if (carryoverTaxApplied && asset.carryoverTax?.donorAcquireDate) {
+    effectiveAcquireDate = asset.carryoverTax.donorAcquireDate;
+    logs.push({
+      step: 'CALC-CARRY-HOLDING',
+      description: '이월과세 보유기간 기산일 (증여자 취득일)',
+      values: {
+        originalAcquireDate: asset.acquireDate,
+        donorAcquireDate: asset.carryoverTax.donorAcquireDate,
+      },
+    });
+  }
+  const holdingYears = asset.holdingYears ?? calculateHoldingYears(effectiveAcquireDate, asset.transferDate);
   const residenceYears = asset.residenceYears ?? 0;
 
   let ltDeductionRate = 0;
@@ -383,6 +528,7 @@ function calculateBP1Asset(
 
 /**
  * 부표2 자산 계산 (주식)
+ * 주식 이월과세: 증여일로부터 1년 이내 양도 시 적용 (2025년 시행)
  */
 function calculateBP2Asset(
   asset: BP2Asset,
@@ -405,16 +551,98 @@ function calculateBP2Asset(
 
   const rateInfo = getRateInfo(rateCode, rulePack, asset.transferDate);
 
+  // 이월과세 처리 (주식: 1년, 소득세법 제97조의2, 2025년 시행)
+  let effectiveAcquirePrice = asset.acquirePrice;
+  let effectiveExpense = asset.necessaryExpense ?? 0;
+  let carryoverTaxApplied = false;
+
+  if (asset.carryoverTax?.enabled && asset.carryoverTax.giftDate) {
+    // 주식 이월과세는 2025년부터 시행
+    const transferYear = new Date(asset.transferDate).getFullYear();
+
+    if (transferYear >= 2025) {
+      const exclusionReason = asset.carryoverTax.exclusionReason ?? 'NONE';
+
+      if (exclusionReason === 'NONE') {
+        // 이월과세 기간 검증 (주식: 1년)
+        const periodValidation = validateCarryoverTaxPeriod(
+          'stock',
+          asset.carryoverTax.giftDate,
+          asset.transferDate
+        );
+
+        if (periodValidation.valid) {
+          carryoverTaxApplied = true;
+          effectiveAcquirePrice = asset.carryoverTax.donorAcquireCost;
+
+          logs.push({
+            step: 'CALC-BP2-CARRY',
+            description: '주식 이월과세 적용 (소득세법 제97조의2)',
+            values: {
+              donorAcquireCost: asset.carryoverTax.donorAcquireCost,
+              giftTaxPaid: asset.carryoverTax.giftTaxPaid,
+              giftDate: asset.carryoverTax.giftDate,
+              periodYears: periodValidation.periodYears,
+              elapsedYears: periodValidation.elapsedYears,
+            },
+          });
+
+          // 양도차익 계산 (증여세 상당액 적용 전)
+          const transferGainBeforeGiftTax = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
+
+          // 증여세 상당액 필요경비 산입 (양도차익 한도)
+          if (asset.carryoverTax.giftTaxPaid > 0) {
+            const giftTaxResult = calculateCarryoverGiftTaxExpense(
+              asset.carryoverTax.giftTaxPaid,
+              asset.carryoverTax.giftTaxBase ?? asset.carryoverTax.giftTaxPaid,
+              asset.carryoverTax.totalGiftTaxBase ?? asset.carryoverTax.giftTaxBase ?? asset.carryoverTax.giftTaxPaid,
+              transferGainBeforeGiftTax
+            );
+
+            effectiveExpense += giftTaxResult.giftTaxExpense;
+
+            logs.push({
+              step: 'CALC-BP2-CARRY-GIFTTAX',
+              description: '주식 이월과세 증여세 상당액 (시행령 제163조의2)',
+              values: {
+                giftTaxPaid: asset.carryoverTax.giftTaxPaid,
+                giftTaxExpense: giftTaxResult.giftTaxExpense,
+                transferGainLimit: transferGainBeforeGiftTax,
+                limited: giftTaxResult.limited ? 1 : 0,
+              },
+            });
+          }
+        } else {
+          logs.push({
+            step: 'CALC-BP2-CARRY-PERIOD-EXCEED',
+            description: '주식 이월과세 기간(1년) 초과',
+            values: {
+              periodYears: periodValidation.periodYears,
+              elapsedYears: periodValidation.elapsedYears,
+            },
+          });
+        }
+      }
+    } else {
+      logs.push({
+        step: 'CALC-BP2-CARRY-NOT-EFFECTIVE',
+        description: '주식 이월과세 미시행 (2025년부터 시행)',
+        values: { transferYear },
+      });
+    }
+  }
+
   // 양도소득금액 = 양도가액 - 취득가액 - 필요경비
-  const gainIncome = asset.transferPrice - asset.acquirePrice - (asset.necessaryExpense ?? 0);
+  const gainIncome = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
 
   logs.push({
     step: 'CALC-BP2-100',
     description: '주식 양도소득금액',
     values: {
       transferPrice: asset.transferPrice,
-      acquirePrice: asset.acquirePrice,
-      necessaryExpense: asset.necessaryExpense ?? 0,
+      effectiveAcquirePrice,
+      effectiveExpense,
+      carryoverTaxApplied: carryoverTaxApplied ? 1 : 0,
       gainIncome,
     },
   });
@@ -424,8 +652,8 @@ function calculateBP2Asset(
     assetType: 'BP2',
     bp3AcquireTotal: 0,
     bp3ExpenseTotal: 0,
-    effectiveAcquirePrice: asset.acquirePrice,
-    effectiveExpense: asset.necessaryExpense ?? 0,
+    effectiveAcquirePrice,
+    effectiveExpense,
     transferGainTotal: gainIncome,
     taxableTransferGain: gainIncome,
     ltDeductionRate: 0,

@@ -125,13 +125,25 @@ export const BP1AssetSchema = z.object({
     donorAcquireCost: KRWAmount.default(0),  // 증여자취득가액
   }).optional(),
 
-  // 이월과세 정보
+  // 이월과세 정보 (소득세법 제97조의2)
   carryoverTax: z.object({
     enabled: z.boolean().default(false),
     giftDate: DateString.optional(),         // 증여일
+    donorAcquireDate: DateString.optional(), // 증여자 취득일 (보유기간 기산용)
     donorAcquireCost: KRWAmount.default(0),  // 증여자취득가액
     giftTaxPaid: KRWAmount.default(0),       // 납부(할)증여세액
+    giftTaxBase: KRWAmount.default(0),       // 증여세 과세표준 (안분계산용)
+    totalGiftTaxBase: KRWAmount.default(0),  // 전체 증여재산 과세표준 (안분계산용)
     donorRelation: z.enum(['spouse', 'lineal']).optional(),
+    // 적용배제 사유
+    exclusionReason: z.enum([
+      'NONE',                    // 적용배제 없음 (이월과세 적용)
+      'ONE_HOUSE_EXEMPTION',     // 1세대 1주택 비과세
+      'LOWER_TAX_BENEFIT',       // 미적용이 유리
+      'SPOUSE_DEATH',            // 배우자 사망
+      'PUBLIC_ACQUISITION',      // 공익사업 수용
+      'RELATIONSHIP_TERMINATED', // 직계존비속 관계 소멸
+    ]).default('NONE'),
   }).optional(),
 });
 export type BP1Asset = z.infer<typeof BP1AssetSchema>;
@@ -162,6 +174,23 @@ export const BP2AssetSchema = z.object({
 
   // 세율구분코드 (자동 결정 또는 수동)
   rateCode: z.string().optional(),
+
+  // 이월과세 정보 (소득세법 제97조의2, 2025년 시행)
+  // 주식은 증여일로부터 1년 이내 양도 시 적용
+  carryoverTax: z.object({
+    enabled: z.boolean().default(false),
+    giftDate: DateString.optional(),         // 증여일
+    donorAcquireDate: DateString.optional(), // 증여자 취득일
+    donorAcquireCost: KRWAmount.default(0),  // 증여자취득가액
+    giftTaxPaid: KRWAmount.default(0),       // 납부(할)증여세액
+    giftTaxBase: KRWAmount.default(0),       // 증여세 과세표준 (안분계산용)
+    totalGiftTaxBase: KRWAmount.default(0),  // 전체 증여재산 과세표준 (안분계산용)
+    donorRelation: z.enum(['spouse', 'lineal']).optional(),
+    exclusionReason: z.enum([
+      'NONE',
+      'LOWER_TAX_BENEFIT',
+    ]).default('NONE'),
+  }).optional(),
 });
 export type BP2Asset = z.infer<typeof BP2AssetSchema>;
 
