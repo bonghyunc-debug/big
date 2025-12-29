@@ -210,6 +210,60 @@ describe('S-005: 부동산과다법인주식 (기본세율+10%p)', () => {
   });
 });
 
+describe('S-006: 특정주식 (소득세법 제94조)', () => {
+  it('부동산 비율 50% 이상 법인주식 → 특정주식 과세', () => {
+    // 소득세법 제94조 제1항 제3호 나목
+    // 부동산 등의 자산비율이 50% 이상인 법인의 주식
+    const testCase = createStockTestCase([
+      {
+        issuerName: '부동산중심법인',
+        domesticForeign: '1',
+        stockTypeCode: '31', // 비상장주식
+        transferType: '1',
+        acquireType: '1',
+        quantity: 10000,
+        transferDate: '2024-08-15',
+        acquireDate: '2018-01-15',
+        transferPrice: 600000000,
+        acquirePrice: 200000000,
+        necessaryExpense: 3000000,
+        rateCode: '1-70', // 특정주식
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 특정주식: 누진세율 적용
+    expect(assetResult.rateCode).toBe('1-70');
+    expect(assetResult.rateType).toBe('progressive');
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('상장주식 지분 2% 이상 → 특정주식 과세 (과점주주)', () => {
+    const testCase = createStockTestCase([
+      {
+        issuerName: '상장법인',
+        securityId: '012345',
+        domesticForeign: '1',
+        stockTypeCode: '34', // 상장주식
+        transferType: '1',
+        acquireType: '1',
+        quantity: 50000,
+        transferDate: '2024-08-15',
+        acquireDate: '2020-01-15',
+        transferPrice: 400000000,
+        acquirePrice: 150000000,
+        necessaryExpense: 2000000,
+        rateCode: '1-70',
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
 describe('S-007: 국외주식 (22% 세율)', () => {
   it('해외주식 양도 → 22% 세율', () => {
     const testCase = createStockTestCase([
@@ -276,6 +330,85 @@ describe('S-009: 주식 이월과세 (1년 내 양도)', () => {
     const assetResult = result.assetResults[0];
 
     expect(assetResult.effectiveAcquirePrice).toBe(50000000);
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
+describe('S-008: 벤처기업주식 감면 (조세특례제한법 제14조)', () => {
+  it('벤처기업 출자주식 3년 이상 보유 → 양도세 100% 감면', () => {
+    // 조세특례제한법 제14조
+    // 벤처기업에 직접 출자하여 취득한 주식을 3년 이상 보유 후 양도시 감면
+    const reliefId = uuidv4();
+    const assetId = uuidv4();
+
+    const testCase = createStockTestCase(
+      [
+        {
+          issuerName: '벤처스타트업',
+          domesticForeign: '1',
+          stockTypeCode: '33', // 중소기업 비상장
+          transferType: '1',
+          acquireType: '1',
+          quantity: 5000,
+          transferDate: '2024-08-15',
+          acquireDate: '2020-01-15', // 4년 보유
+          transferPrice: 300000000,
+          acquirePrice: 50000000,
+          necessaryExpense: 1000000,
+          rateCode: '1-61',
+        },
+      ],
+      {
+        reliefs: [
+          {
+            id: reliefId,
+            assetId: assetId,
+            reliefCode: 'VENTURE_STOCK_3Y',
+            reliefName: '벤처기업 출자주식 감면',
+            reliefType: 'TAX',
+            reliefRate: 100,
+            reliefAmount: 20000000,
+            baseAmount: 20000000,
+            legalBasis: '조세특례제한법 제14조',
+            prevYearReliefUsed: 0,
+            ruralSpecialTaxExempt: false,
+            isSelfFarmLand: false,
+          },
+        ],
+      }
+    );
+
+    testCase.bp2Assets[0].id = assetId;
+
+    const result = calculateTaxCase(testCase);
+
+    // 벤처기업 주식 3년 이상 보유 감면 적용
+    expect(result.mainResult.line11_taxRelief).toBeGreaterThan(0);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('벤처기업주식 3년 미만 보유 → 감면 미적용', () => {
+    const testCase = createStockTestCase([
+      {
+        issuerName: '벤처스타트업',
+        domesticForeign: '1',
+        stockTypeCode: '33',
+        transferType: '1',
+        acquireType: '1',
+        quantity: 3000,
+        transferDate: '2024-08-15',
+        acquireDate: '2022-06-15', // 2년 2개월 보유 (3년 미만)
+        transferPrice: 150000000,
+        acquirePrice: 30000000,
+        necessaryExpense: 500000,
+        rateCode: '1-61',
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+
+    // 3년 미만 보유: 감면 없음
+    expect(result.mainResult.line11_taxRelief).toBe(0);
     expect(result.errors).toHaveLength(0);
   });
 });

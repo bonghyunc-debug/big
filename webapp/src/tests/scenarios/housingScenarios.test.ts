@@ -375,6 +375,93 @@ describe('H-012: 주택 1-2년 양도 (60% 세율)', () => {
   });
 });
 
+describe('H-014: 해외이주 비과세 (출국 2년 내 양도)', () => {
+  it('해외이주 후 2년 내 종전주택 양도 → 비과세', () => {
+    // 소득세법 시행령 제154조 제1항 제2호
+    // 해외이주법에 따른 해외이주로 세대전원 출국 후 2년 이내 양도
+    const testCase = createTestCase([
+      {
+        rateCode: '1-52',
+        assetTypeCode: '2',
+        transferDate: '2024-06-15',
+        acquireDate: '2016-06-15', // 8년 보유
+        transferPrice: 1100000000, // 11억
+        acquirePrice: 500000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '01',
+        holdingYears: 8,
+        residenceYears: 6,
+        userFlags: {
+          unregistered: false,
+          nonBusinessLand: false,
+          multiHomeSurtax: false,
+          multiHomeCount: 0,
+          adjustedArea: false,
+          oneHouseExemption: true,
+          highValueHousing: false,
+        },
+        oneHouseExemptionDetail: {
+          enabled: true,
+          actualHoldingYears: 8,
+          actualResidenceYears: 6,
+          inheritedHoldingYears: 0,
+          inheritedResidenceYears: 0,
+          holdingExemptReason: 'OVERSEAS_EMIGRATION', // 해외이주
+          residenceExemptReason: 'NONE',
+          temporaryExemptReason: 'NONE',
+        },
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+
+    // 해외이주 비과세 특례 적용 (시행령 제154조 제1항 제2호)
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('해외 취학/근무 2년 이상 → 보유요건 면제', () => {
+    // 소득세법 시행령 제154조 제1항 제2호 나목
+    const testCase = createTestCase([
+      {
+        rateCode: '1-52',
+        assetTypeCode: '2',
+        transferDate: '2024-06-15',
+        acquireDate: '2023-08-15', // 10개월 보유 (2년 미만)
+        transferPrice: 850000000,
+        acquirePrice: 700000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '01',
+        holdingYears: 0,
+        residenceYears: 0,
+        userFlags: {
+          unregistered: false,
+          nonBusinessLand: false,
+          multiHomeSurtax: false,
+          multiHomeCount: 0,
+          adjustedArea: false,
+          oneHouseExemption: true,
+          highValueHousing: false,
+        },
+        oneHouseExemptionDetail: {
+          enabled: true,
+          actualHoldingYears: 0,
+          actualResidenceYears: 0,
+          inheritedHoldingYears: 0,
+          inheritedResidenceYears: 0,
+          holdingExemptReason: 'OVERSEAS_WORK_STUDY', // 해외 취학/근무
+          residenceExemptReason: 'NONE',
+          temporaryExemptReason: 'NONE',
+        },
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+
+    // 해외 취학/근무 → 2년 보유요건 면제
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
 describe('H-015: 동거봉양 합가 (10년 내 양도)', () => {
   it('부모 동거봉양으로 합가 후 10년 내 양도 → 1세대1주택 비과세', () => {
     const testCase = createTestCase([

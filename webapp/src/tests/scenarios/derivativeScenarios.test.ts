@@ -132,6 +132,80 @@ describe('D-003: 개별주식옵션', () => {
   });
 });
 
+describe('D-004: 해외파생상품 (10% 세율)', () => {
+  it('해외선물/옵션 양도차익 → 10% 세율', () => {
+    // 소득세법 제94조 제1항 제5호의2
+    // 해외파생상품도 국내와 동일하게 10% 세율 적용
+    const bp2_2: BP2_2 = {
+      taxYear: 2024,
+      rows: [
+        {
+          id: uuidv4(),
+          rateCode: '81', // 2018.4.1 이후 10%
+          productName: 'CME S&P500 선물',
+          r08_transferPrice: 80000000,
+          r09_necessaryExpense: 4000000,
+          r11_prevGain: 0,
+          r12_currentLoss: 0,
+          r13_carriedLoss: 0,
+          r14_otherDeduction: 0,
+        },
+      ],
+    };
+
+    const testCase = createDerivativeTestCase(bp2_2);
+    const result = calculateTaxCase(testCase);
+
+    const derivResult = result.assetResults.find(r => r.rateCode === '1-81');
+
+    expect(derivResult).toBeDefined();
+    if (derivResult) {
+      expect(derivResult.rateType).toBe('flat');
+      expect(derivResult.rateValue).toBe(10);
+      expect(derivResult.transferGainTotal).toBe(76000000);
+    }
+
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('해외옵션 + 국내선물 복합 거래', () => {
+    const bp2_2: BP2_2 = {
+      taxYear: 2024,
+      rows: [
+        {
+          id: uuidv4(),
+          rateCode: '81',
+          productName: 'CME 금선물',
+          r08_transferPrice: 50000000,
+          r09_necessaryExpense: 2500000,
+          r11_prevGain: 0,
+          r12_currentLoss: 0,
+          r13_carriedLoss: 0,
+          r14_otherDeduction: 0,
+        },
+        {
+          id: uuidv4(),
+          rateCode: '81',
+          productName: 'KOSPI200 선물',
+          r08_transferPrice: 60000000,
+          r09_necessaryExpense: 3000000,
+          r11_prevGain: 0,
+          r12_currentLoss: 0,
+          r13_carriedLoss: 0,
+          r14_otherDeduction: 0,
+        },
+      ],
+    };
+
+    const testCase = createDerivativeTestCase(bp2_2);
+    const result = calculateTaxCase(testCase);
+
+    // 해외+국내 파생상품 복합 거래: 각각 10% 세율
+    expect(result.assetResults).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
 describe('D-005: 파생상품 손실 공제', () => {
   it('당해연도 손실 공제 적용', () => {
     const bp2_2: BP2_2 = {
