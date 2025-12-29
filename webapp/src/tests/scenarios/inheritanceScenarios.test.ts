@@ -269,8 +269,13 @@ describe('I-006: 증여재산 이월과세 배제 (1세대1주택 비과세)', (
   });
 });
 
-describe('I-007: 부담부증여 (채무인수 부분)', () => {
-  it('부담부증여 → 채무인수 부분은 양도, 나머지는 증여', () => {
+describe('I-007: 부담부증여 (채무인수 부분) - 소득세법 시행령 제159조', () => {
+  it('부담부증여 → 양도가액=채무액, 취득가액=증여자취득가액×비율', () => {
+    // 시행령 제159조: 부담부증여 양도차익 계산
+    // - 양도가액 = 채무액 = 300,000,000
+    // - 비율 = 채무액/증여재산가액 = 300,000,000/1,000,000,000 = 0.3
+    // - 취득가액 = 증여자취득가액 × 비율 = 400,000,000 × 0.3 = 120,000,000
+    // - 양도차익 = 양도가액 - 취득가액 = 300,000,000 - 120,000,000 = 180,000,000
     const testCase = createInheritanceTestCase([
       {
         rateCode: '1-10',
@@ -278,23 +283,102 @@ describe('I-007: 부담부증여 (채무인수 부분)', () => {
         transferDate: '2024-08-15',
         acquireDate: '2023-06-15',
         acquireCause: '8',
-        transferPrice: 1200000000,
+        transferPrice: 1200000000, // 실제 양도가액 (전체)
         acquirePrice: 1000000000,
         acquirePriceType: 'ACTUAL',
         ltDeductionCode: '02',
         holdingYears: 1,
         giftWithDebt: {
           enabled: true,
-          assessedValue: 1000000000,
-          debtAmount: 300000000,
-          donorAcquireCost: 400000000,
+          assessedValue: 1000000000,  // 증여재산가액 (상증법 평가액)
+          debtAmount: 300000000,       // 채무액 (수증자 인수)
+          donorAcquireCost: 400000000, // 증여자 취득가액
         },
         userFlags: defaultUserFlags,
       },
     ]);
 
     const result = calculateTaxCase(testCase);
-    expect(result.assetResults[0]).toBeDefined();
+    const assetResult = result.assetResults[0];
+
+    // 시행령 제159조 검증
+    expect(assetResult.effectiveTransferPrice).toBe(300000000); // 양도가액 = 채무액
+    expect(assetResult.effectiveAcquirePrice).toBe(120000000);  // 취득가액 = 400M × 0.3
+    expect(assetResult.transferGainTotal).toBe(180000000);      // 양도차익 = 300M - 120M
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('부담부증여 → 증여재산평가방법에 따른 취득가액 결정 (시가평가시 실지취득가액)', () => {
+    // 2023년 개정: 증여재산을 시가로 평가한 경우 → 실지취득가액 적용
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '1', // 토지
+        transferDate: '2024-08-15',
+        acquireDate: '2024-01-15',
+        acquireCause: '8',
+        transferPrice: 800000000,
+        acquirePrice: 600000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '03', // 장특공 배제 (1년 미만)
+        holdingYears: 0,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 600000000,  // 시가평가 증여재산가액
+          debtAmount: 200000000,      // 채무액 (담보대출)
+          donorAcquireCost: 300000000, // 증여자 실지취득가액
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 비율 = 200M / 600M = 1/3
+    // 양도가액 = 채무액 = 200,000,000
+    // 취득가액 = 300M × (1/3) = 100,000,000
+    // 양도차익 = 200M - 100M = 100,000,000
+    expect(assetResult.effectiveTransferPrice).toBe(200000000);
+    expect(assetResult.effectiveAcquirePrice).toBe(100000000);
+    expect(assetResult.transferGainTotal).toBe(100000000);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('부담부증여 → 채무비율 50%인 경우', () => {
+    // 채무가 증여재산의 50%인 경우
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '2',
+        transferDate: '2024-08-15',
+        acquireDate: '2022-01-15',
+        acquireCause: '8',
+        transferPrice: 1000000000,
+        acquirePrice: 800000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '02',
+        holdingYears: 2,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 800000000,
+          debtAmount: 400000000,       // 50% 채무 비율
+          donorAcquireCost: 200000000,
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 비율 = 400M / 800M = 0.5
+    // 양도가액 = 채무액 = 400,000,000
+    // 취득가액 = 200M × 0.5 = 100,000,000
+    // 양도차익 = 400M - 100M = 300,000,000
+    expect(assetResult.effectiveTransferPrice).toBe(400000000);
+    expect(assetResult.effectiveAcquirePrice).toBe(100000000);
+    expect(assetResult.transferGainTotal).toBe(300000000);
     expect(result.errors).toHaveLength(0);
   });
 });

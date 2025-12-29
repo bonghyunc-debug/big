@@ -646,6 +646,9 @@ function calculateBP1Asset(
   const acquirePriceResult = calculateAcquirePriceByCause(asset, logs);
   let effectiveAcquirePrice = acquirePriceResult.acquirePrice;
 
+  // 양도가액 (부담부증여 시 채무액으로 대체 - 소득세법 시행령 제159조)
+  let effectiveTransferPrice = asset.transferPrice;
+
   // 환산취득가액 처리 (실거래가액 불분명시)
   if (asset.acquirePriceType === 'CONVERTED' &&
       asset.stdValueAcquireBuilding !== undefined &&
@@ -685,21 +688,28 @@ function calculateBP1Asset(
     }
   }
 
-  // 부담부증여 처리
+  // 부담부증여 처리 (소득세법 시행령 제159조)
+  // 양도가액 = 채무액, 취득가액 = 증여자취득가액 × (채무액/증여재산가액)
   if (asset.giftWithDebt?.enabled) {
     const portion = calculateGiftWithDebtPortion(
       asset.giftWithDebt.assessedValue,
       asset.giftWithDebt.debtAmount,
       asset.giftWithDebt.donorAcquireCost
     );
+    // 법령: 양도가액 = 채무액 (시행령 제159조)
+    effectiveTransferPrice = portion.transferPricePortion;
+    // 법령: 취득가액 = 증여자취득가액 × (채무액/증여재산가액)
     effectiveAcquirePrice = portion.acquirePricePortion;
     logs.push({
       step: 'CALC-GIFT-159',
-      description: '부담부증여 안분',
+      description: '부담부증여 안분 (소득세법 시행령 제159조)',
       values: {
+        assessedValue: asset.giftWithDebt.assessedValue,
+        debtAmount: asset.giftWithDebt.debtAmount,
+        donorAcquireCost: asset.giftWithDebt.donorAcquireCost,
         ratio: portion.ratio,
-        transferPricePortion: portion.transferPricePortion,
-        acquirePricePortion: portion.acquirePricePortion,
+        effectiveTransferPrice: portion.transferPricePortion,
+        effectiveAcquirePrice: portion.acquirePricePortion,
       },
     });
   }
@@ -765,7 +775,8 @@ function calculateBP1Asset(
   let effectiveExpense = bp3Totals.expenseTotal;
 
   // 양도차익 계산 (증여세 상당액 적용 전)
-  const transferGainBeforeGiftTax = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
+  // 부담부증여 시 effectiveTransferPrice = 채무액 (시행령 제159조)
+  const transferGainBeforeGiftTax = effectiveTransferPrice - effectiveAcquirePrice - effectiveExpense;
 
   // 이월과세 증여세 상당액 필요경비 산입 (시행령 제163조의2 제2항)
   if (carryoverTaxApplied && asset.carryoverTax?.giftTaxPaid) {
@@ -792,14 +803,15 @@ function calculateBP1Asset(
     });
   }
 
-  // 전체 양도차익
-  const transferGainTotal = asset.transferPrice - effectiveAcquirePrice - effectiveExpense;
+  // 전체 양도차익 (부담부증여 시 양도가액 = 채무액)
+  const transferGainTotal = effectiveTransferPrice - effectiveAcquirePrice - effectiveExpense;
 
   logs.push({
     step: 'CALC-BP1-100',
     description: '전체 양도차익 계산',
     values: {
-      transferPrice: asset.transferPrice,
+      originalTransferPrice: asset.transferPrice,
+      effectiveTransferPrice,
       effectiveAcquirePrice,
       effectiveExpense,
       transferGainTotal,
@@ -926,6 +938,7 @@ function calculateBP1Asset(
     assetType: 'BP1',
     bp3AcquireTotal: bp3Totals.acquireTotal,
     bp3ExpenseTotal: bp3Totals.expenseTotal,
+    effectiveTransferPrice,
     effectiveAcquirePrice,
     effectiveExpense,
     transferGainTotal,

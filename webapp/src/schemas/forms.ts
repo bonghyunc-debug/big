@@ -382,6 +382,7 @@ export const DerivedAssetResultSchema = z.object({
   bp3ExpenseTotal: KRWAmount.default(0),
 
   // 계산값
+  effectiveTransferPrice: KRWAmount.optional(), // 유효 양도가액(부담부증여 시 채무액)
   effectiveAcquirePrice: KRWAmount,        // 유효 취득가액(환산 반영)
   effectiveExpense: KRWAmount,             // 유효 필요경비
   transferGainTotal: KRWAmount,            // 전체양도차익
