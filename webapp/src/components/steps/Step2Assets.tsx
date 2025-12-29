@@ -23,6 +23,10 @@ import {
   isMultiHomeSurtaxSuspended,
   ONE_HOUSE_EXEMPTION_CHECKLIST,
 } from '../../data/taxRules';
+import { InheritanceDetailForm } from '../forms/InheritanceDetailForm';
+import { OneHouseExemptionForm } from '../forms/OneHouseExemptionForm';
+import { AdjustedAreaInfoForm } from '../forms/AdjustedAreaInfoForm';
+import { validateBP1Asset, getErrors, getWarnings, type ValidationError } from '../validation/assetValidation';
 
 const assetTypeOptions = Object.entries(AssetTypeLabels).map(([value, label]) => ({
   value,
@@ -44,10 +48,10 @@ const transferAcquireOptions = Object.entries(TransferAcquireTypeLabels).map(([v
   label,
 }));
 
-// 세율구분코드 전체 옵션
+// 세율구분코드 전체 옵션 (2021.6.1 이후 세율 반영)
 const rateCodeOptions = [
-  { value: '1-10', label: '1-10 토지/건물(일반)' },
-  { value: '1-11', label: '1-11 비사업용토지' },
+  { value: '1-10', label: '1-10 토지/건물(일반) - 기본세율' },
+  { value: '1-11', label: '1-11 비사업용토지 - 기본+10%p' },
   { value: '1-15', label: '1-15 1년미만 부동산 (50%)' },
   { value: '1-20', label: '1-20 토지/건물 2-3년' },
   { value: '1-21', label: '1-21 1-2년 부동산 (40%)' },
@@ -55,18 +59,18 @@ const rateCodeOptions = [
   { value: '1-30', label: '1-30 조합원입주권(장기)' },
   { value: '1-35', label: '1-35 미등기 부동산 (70%)' },
   { value: '1-36', label: '1-36 미등기 권리 (70%)' },
-  { value: '1-38', label: '1-38 분양권 1년미만 (50%)' },
-  { value: '1-39', label: '1-39 분양권 1-2년 (40%)' },
-  { value: '1-40', label: '1-40 분양권 2년이상' },
-  { value: '1-46', label: '1-46 조정대상 2주택' },
-  { value: '1-47', label: '1-47 조정대상 3주택이상' },
-  { value: '1-50', label: '1-50 주택 1년미만 (50%)' },
-  { value: '1-51', label: '1-51 주택 1-2년 (40%)' },
-  { value: '1-52', label: '1-52 주택 2년이상' },
-  { value: '1-53', label: '1-53 조정2주택 1년미만' },
-  { value: '1-54', label: '1-54 조정2주택 1-2년' },
-  { value: '1-55', label: '1-55 조정3주택 1년미만' },
-  { value: '1-56', label: '1-56 조정3주택 1-2년' },
+  { value: '1-38', label: '1-38 분양권 1년미만 (70%)' },
+  { value: '1-39', label: '1-39 분양권 1-2년 (60%)' },
+  { value: '1-40', label: '1-40 분양권 2년이상 (60%)' },
+  { value: '1-46', label: '1-46 조정대상 2주택 - 기본+20%p (한시배제 중)' },
+  { value: '1-47', label: '1-47 조정대상 3주택이상 - 기본+30%p (한시배제 중)' },
+  { value: '1-50', label: '1-50 주택 1년미만 (70%)' },
+  { value: '1-51', label: '1-51 주택 1-2년 (60%)' },
+  { value: '1-52', label: '1-52 주택 2년이상 - 기본세율' },
+  { value: '1-53', label: '1-53 조정2주택 1년미만 (70%)' },
+  { value: '1-54', label: '1-54 조정2주택 1-2년 (60%)' },
+  { value: '1-55', label: '1-55 조정3주택 1년미만 (70%)' },
+  { value: '1-56', label: '1-56 조정3주택 1-2년 (60%)' },
   { value: '1-57', label: '1-57 주택외 일반' },
   { value: '1-58', label: '1-58 기타자산' },
   { value: '1-70', label: '1-70 특정주식' },
@@ -131,6 +135,14 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
   const [showBP3, setShowBP3] = React.useState(false);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showExemptionChecklist, setShowExemptionChecklist] = React.useState(false);
+  const [showInheritanceForm, setShowInheritanceForm] = React.useState(asset.inheritanceInfo?.enabled ?? false);
+  const [showAdjustedAreaForm, setShowAdjustedAreaForm] = React.useState(false);
+  const [showOneHouseDetailForm, setShowOneHouseDetailForm] = React.useState(false);
+
+  // 검증 오류/경고
+  const validationErrors = React.useMemo(() => validateBP1Asset(asset, index), [asset, index]);
+  const errors = getErrors(validationErrors);
+  const warnings = getWarnings(validationErrors);
 
   // 자동 계산값
   const holdingYears = asset.acquireDate && asset.transferDate
@@ -201,9 +213,13 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
   };
 
   return (
-    <div className="asset-card">
+    <div className={`asset-card ${errors.length > 0 ? 'has-errors' : warnings.length > 0 ? 'has-warnings' : ''}`}>
       <div className="asset-card-header">
-        <h4>자산 {index + 1}</h4>
+        <h4>
+          자산 {index + 1}
+          {errors.length > 0 && <span className="error-badge">⚠ {errors.length}</span>}
+          {warnings.length > 0 && errors.length === 0 && <span className="warning-badge">💡 {warnings.length}</span>}
+        </h4>
         <div className="asset-card-actions">
           {filingDeadline && (
             <span className={`deadline-badge ${filingDeadline.isPastDue ? 'overdue' : filingDeadline.daysRemaining <= 30 ? 'warning' : 'ok'}`}>
@@ -218,6 +234,30 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
           </Button>
         </div>
       </div>
+
+      {/* 검증 오류/경고 메시지 */}
+      {errors.length > 0 && (
+        <div className="validation-errors">
+          {errors.map((err, i) => (
+            <div key={i} className="validation-error-item">
+              <span className="error-icon">⚠</span>
+              <span className="error-message">{err.message}</span>
+              {err.legalBasis && <span className="legal-basis">({err.legalBasis})</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      {warnings.length > 0 && (
+        <div className="validation-warnings">
+          {warnings.map((warn, i) => (
+            <div key={i} className="validation-warning-item">
+              <span className="warning-icon">💡</span>
+              <span className="warning-message">{warn.message}</span>
+              {warn.legalBasis && <span className="legal-basis">({warn.legalBasis})</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="asset-card-body">
         {/* 기본정보 */}
@@ -284,6 +324,37 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 <span className="info-warning"> (2년 미만 - 단기양도 세율 적용 가능)</span>
               )}
             </div>
+          )}
+
+          {/* 상속 자산 정보 (시행령 제162조, 제163조) */}
+          <div className="form-row" style={{ marginTop: '1rem' }}>
+            <Checkbox
+              checked={asset.inheritanceInfo?.enabled ?? false}
+              onChange={(v) => {
+                onUpdate({
+                  inheritanceInfo: {
+                    enabled: v,
+                    inheritanceDate: asset.inheritanceInfo?.inheritanceDate,
+                    decedentAcquireDate: asset.inheritanceInfo?.decedentAcquireDate,
+                    decedentAcquireCost: asset.inheritanceInfo?.decedentAcquireCost ?? 0,
+                    inheritanceTaxValue: asset.inheritanceInfo?.inheritanceTaxValue ?? 0,
+                    sameHousehold: asset.inheritanceInfo?.sameHousehold ?? false,
+                    decedentHoldingYears: asset.inheritanceInfo?.decedentHoldingYears ?? 0,
+                    decedentResidenceYears: asset.inheritanceInfo?.decedentResidenceYears ?? 0,
+                    businessSuccession: asset.inheritanceInfo?.businessSuccession ?? false,
+                  },
+                });
+                setShowInheritanceForm(v);
+              }}
+              label="상속받은 자산"
+              tooltip="상속으로 취득한 경우 피상속인 정보 입력 필요 (시행령 제162조, 제163조)"
+            />
+          </div>
+          {showInheritanceForm && asset.inheritanceInfo?.enabled && (
+            <InheritanceDetailForm
+              asset={asset}
+              onUpdate={onUpdate}
+            />
           )}
         </div>
 
@@ -458,7 +529,7 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 })
               }
               label="다주택 중과 대상"
-              tooltip={`조정대상지역 다주택자 중과세율 적용 대상${isSurtaxSuspended ? ' (현재 한시배제 기간: ~2025.5.9)' : ''}`}
+              tooltip={`조정대상지역 다주택자 중과세율 적용 대상${isSurtaxSuspended ? ' (현재 한시배제 기간: ~2026.5.9)' : ''}`}
             />
 
             {asset.userFlags.multiHomeSurtax && (
@@ -475,7 +546,7 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 </FormField>
                 {isSurtaxSuspended && (
                   <div className="notice notice-info">
-                    한시배제 기간(2022.5.10~2025.5.9) 중 양도 시 기본세율 적용
+                    한시배제 기간(2022.5.10~2026.5.9) 중 양도 시 기본세율 적용 (소득세법 제104조 제7항, 부칙)
                   </div>
                 )}
               </div>
@@ -486,11 +557,24 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
               onChange={(v) => {
                 onUpdate({
                   userFlags: { ...asset.userFlags, oneHouseExemption: v },
+                  oneHouseExemptionDetail: v ? {
+                    enabled: true,
+                    actualHoldingYears: holdingYears,
+                    actualResidenceYears: asset.oneHouseExemptionDetail?.actualResidenceYears ?? 0,
+                    inheritedHoldingYears: asset.oneHouseExemptionDetail?.inheritedHoldingYears ?? 0,
+                    inheritedResidenceYears: asset.oneHouseExemptionDetail?.inheritedResidenceYears ?? 0,
+                    holdingExemptReason: asset.oneHouseExemptionDetail?.holdingExemptReason ?? 'NONE',
+                    residenceExemptReason: asset.oneHouseExemptionDetail?.residenceExemptReason ?? 'NONE',
+                    temporaryExemptReason: asset.oneHouseExemptionDetail?.temporaryExemptReason ?? 'NONE',
+                  } : asset.oneHouseExemptionDetail,
                 });
-                if (v) setShowExemptionChecklist(true);
+                if (v) {
+                  setShowExemptionChecklist(true);
+                  setShowOneHouseDetailForm(true);
+                }
               }}
               label="1세대1주택 비과세 대상"
-              tooltip="보유기간 2년(거주기간 요건 포함) 이상 1세대1주택"
+              tooltip="보유기간 2년(거주기간 요건 포함) 이상 1세대1주택 (시행령 제154조)"
             />
 
             {asset.userFlags.oneHouseExemption && (
@@ -498,23 +582,16 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 <button
                   type="button"
                   className="link-button"
-                  onClick={() => setShowExemptionChecklist(!showExemptionChecklist)}
+                  onClick={() => setShowOneHouseDetailForm(!showOneHouseDetailForm)}
                 >
-                  {showExemptionChecklist ? '▼' : '▶'} 비과세 요건 체크리스트
+                  {showOneHouseDetailForm ? '▼' : '▶'} 1세대1주택 비과세 상세 검증
                 </button>
 
-                {showExemptionChecklist && (
-                  <div className="checklist-box">
-                    {ONE_HOUSE_EXEMPTION_CHECKLIST.map((item) => (
-                      <div key={item.id} className="checklist-item">
-                        <span className="checklist-question">
-                          {item.required && <span className="required">*</span>}
-                          {item.question}
-                        </span>
-                        <span className="checklist-help">{item.helpText}</span>
-                      </div>
-                    ))}
-                  </div>
+                {showOneHouseDetailForm && (
+                  <OneHouseExemptionForm
+                    asset={asset}
+                    onUpdate={onUpdate}
+                  />
                 )}
 
                 <Checkbox
@@ -525,9 +602,28 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                     })
                   }
                   label={`고가주택 (양도가액 12억 초과) ${isHighValue ? '(자동감지됨)' : ''}`}
-                  tooltip="양도가액이 12억원을 초과하는 경우 초과분에 대해서만 과세"
+                  tooltip="양도가액이 12억원을 초과하는 경우 초과분에 대해서만 과세 (시행령 제160조)"
                 />
               </>
+            )}
+          </div>
+
+          {/* 조정대상지역 상세정보 */}
+          <div className="collapsible-section" style={{ marginTop: '1rem' }}>
+            <button
+              type="button"
+              className="collapsible-header"
+              onClick={() => setShowAdjustedAreaForm(!showAdjustedAreaForm)}
+            >
+              <span>조정대상지역 상세 {isInAdjustedArea || asset.userFlags.adjustedArea ? '(해당)' : '(비해당)'}</span>
+              <span className="arrow">{showAdjustedAreaForm ? '▼' : '▶'}</span>
+            </button>
+
+            {showAdjustedAreaForm && (
+              <AdjustedAreaInfoForm
+                asset={asset}
+                onUpdate={onUpdate}
+              />
             )}
           </div>
         </div>
@@ -1012,31 +1108,17 @@ export function Step2Assets() {
     addBP1Asset(createEmptyBP1Asset());
   };
 
-  const validateAssets = (): string[] => {
-    const errors: string[] = [];
+  // 상세 검증 모듈 사용
+  const validateAssets = (): ValidationError[] => {
+    const allErrors: ValidationError[] = [];
 
     for (let i = 0; i < currentCase.bp1Assets.length; i++) {
       const asset = currentCase.bp1Assets[i];
-      const num = i + 1;
-
-      if (!asset.transferDate) {
-        errors.push(`자산 ${num}: 양도일을 입력하세요.`);
-      }
-      if (!asset.acquireDate) {
-        errors.push(`자산 ${num}: 취득일을 입력하세요.`);
-      }
-      if (asset.acquireDate && asset.transferDate && asset.acquireDate > asset.transferDate) {
-        errors.push(`자산 ${num}: 취득일이 양도일보다 늦을 수 없습니다.`);
-      }
-      if (asset.transferPrice <= 0) {
-        errors.push(`자산 ${num}: 양도가액을 입력하세요.`);
-      }
-      if (asset.acquirePrice <= 0) {
-        errors.push(`자산 ${num}: 취득가액을 입력하세요.`);
-      }
+      const assetErrors = validateBP1Asset(asset, i);
+      allErrors.push(...getErrors(assetErrors)); // 오류만 포함 (경고는 제외)
     }
 
-    return errors;
+    return allErrors;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1049,7 +1131,12 @@ export function Step2Assets() {
 
     const errors = validateAssets();
     if (errors.length > 0) {
-      alert('입력 오류:\n\n' + errors.join('\n'));
+      const errorMessages = errors.map((e) => {
+        let msg = e.message;
+        if (e.legalBasis) msg += ` (${e.legalBasis})`;
+        return msg;
+      });
+      alert('입력 오류:\n\n' + errorMessages.join('\n'));
       return;
     }
 
