@@ -818,12 +818,27 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
               )}
 
               <h5>이월과세 (소득세법 제97조의2)</h5>
+              <div className="notice notice-info" style={{ marginBottom: '0.5rem' }}>
+                <p style={{ fontSize: '0.85rem' }}>
+                  배우자/직계존비속으로부터 증여받은 후 일정 기간 내 양도 시 증여자 취득가액 기준으로 양도차익 계산
+                  <br />
+                  • 부동산: 10년 이내 (2023년 이후 증여분) / 5년 이내 (2022년 이전)
+                  <br />
+                  • 증여세 상당액은 양도차익을 한도로 필요경비 산입
+                </p>
+              </div>
               <Checkbox
                 checked={asset.carryoverTax?.enabled ?? false}
                 onChange={(v) =>
                   onUpdate({
                     carryoverTax: {
-                      ...(asset.carryoverTax ?? { donorAcquireCost: 0, giftTaxPaid: 0 }),
+                      ...(asset.carryoverTax ?? {
+                        donorAcquireCost: 0,
+                        giftTaxPaid: 0,
+                        giftTaxBase: 0,
+                        totalGiftTaxBase: 0,
+                        exclusionReason: 'NONE',
+                      }),
                       enabled: v,
                     },
                   })
@@ -832,38 +847,146 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 tooltip="배우자/직계존비속으로부터 증여받은 후 10년(또는 5년) 내 양도 시"
               />
               {asset.carryoverTax?.enabled && (
-                <div className="form-row">
-                  <FormField label="증여자 취득가액">
-                    <NumberInput
-                      value={asset.carryoverTax.donorAcquireCost}
-                      onChange={(v) =>
-                        onUpdate({
-                          carryoverTax: { ...asset.carryoverTax!, donorAcquireCost: v },
-                        })
-                      }
-                    />
-                  </FormField>
-                  <FormField label="납부(할) 증여세액">
-                    <NumberInput
-                      value={asset.carryoverTax.giftTaxPaid}
-                      onChange={(v) =>
-                        onUpdate({
-                          carryoverTax: { ...asset.carryoverTax!, giftTaxPaid: v },
-                        })
-                      }
-                    />
-                  </FormField>
-                  <FormField label="증여일">
-                    <DateInput
-                      value={asset.carryoverTax.giftDate ?? ''}
-                      onChange={(v) =>
-                        onUpdate({
-                          carryoverTax: { ...asset.carryoverTax!, giftDate: v },
-                        })
-                      }
-                    />
-                  </FormField>
-                </div>
+                <>
+                  <div className="form-row">
+                    <FormField label="증여일" required>
+                      <DateInput
+                        value={asset.carryoverTax.giftDate ?? ''}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, giftDate: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField label="증여자 취득일" tooltip="보유기간 기산일 (장기보유특별공제 적용용)">
+                      <DateInput
+                        value={asset.carryoverTax.donorAcquireDate ?? ''}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, donorAcquireDate: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField label="증여자 관계">
+                      <Select
+                        value={asset.carryoverTax.donorRelation ?? 'spouse'}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, donorRelation: v as 'spouse' | 'lineal' },
+                          })
+                        }
+                        options={[
+                          { value: 'spouse', label: '배우자' },
+                          { value: 'lineal', label: '직계존비속' },
+                        ]}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* 이월과세 기간 검증 */}
+                  {asset.carryoverTax.giftDate && asset.transferDate && (() => {
+                    const giftDate = new Date(asset.carryoverTax.giftDate!);
+                    const transferDate = new Date(asset.transferDate);
+                    const elapsedMs = transferDate.getTime() - giftDate.getTime();
+                    const elapsedYears = elapsedMs / (1000 * 60 * 60 * 24 * 365.25);
+                    const amendmentDate = new Date('2023-01-01');
+                    const periodYears = giftDate >= amendmentDate ? 10 : 5;
+                    const isValid = elapsedYears <= periodYears;
+
+                    return (
+                      <div className={`notice ${isValid ? 'notice-success' : 'notice-warning'}`} style={{ marginTop: '0.5rem' }}>
+                        <p style={{ fontSize: '0.85rem' }}>
+                          증여일로부터 {elapsedYears.toFixed(1)}년 경과 (기간: {periodYears}년)
+                          {isValid
+                            ? ' → 이월과세 적용 대상'
+                            : ' → 기간 초과로 이월과세 미적용'}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="form-row" style={{ marginTop: '1rem' }}>
+                    <FormField label="증여자 취득가액" required tooltip="증여자가 해당 자산을 취득한 금액">
+                      <NumberInput
+                        value={asset.carryoverTax.donorAcquireCost}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, donorAcquireCost: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField label="납부(할) 증여세액" tooltip="증여세 산출세액 (양도차익 한도로 필요경비 산입)">
+                      <NumberInput
+                        value={asset.carryoverTax.giftTaxPaid}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, giftTaxPaid: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* 증여세 안분 계산용 (여러 자산 증여 시) */}
+                  <div className="form-row">
+                    <FormField label="당해 자산 증여세 과세표준" tooltip="이 자산에 대한 증여세 과세표준 (안분계산용)">
+                      <NumberInput
+                        value={asset.carryoverTax.giftTaxBase ?? 0}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, giftTaxBase: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField label="전체 증여재산 과세표준" tooltip="함께 증여받은 전체 재산의 과세표준 합계">
+                      <NumberInput
+                        value={asset.carryoverTax.totalGiftTaxBase ?? 0}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: { ...asset.carryoverTax!, totalGiftTaxBase: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* 적용배제 사유 */}
+                  <div className="form-row" style={{ marginTop: '1rem' }}>
+                    <FormField label="적용배제 사유" tooltip="해당 사유가 있으면 이월과세가 배제됨">
+                      <Select
+                        value={asset.carryoverTax.exclusionReason ?? 'NONE'}
+                        onChange={(v) =>
+                          onUpdate({
+                            carryoverTax: {
+                              ...asset.carryoverTax!,
+                              exclusionReason: v as 'NONE' | 'ONE_HOUSE_EXEMPTION' | 'LOWER_TAX_BENEFIT' | 'SPOUSE_DEATH' | 'PUBLIC_ACQUISITION' | 'RELATIONSHIP_TERMINATED',
+                            },
+                          })
+                        }
+                        options={[
+                          { value: 'NONE', label: '해당없음 (이월과세 적용)' },
+                          { value: 'ONE_HOUSE_EXEMPTION', label: '1세대1주택 비과세' },
+                          { value: 'LOWER_TAX_BENEFIT', label: '미적용이 유리' },
+                          { value: 'SPOUSE_DEATH', label: '배우자 사망' },
+                          { value: 'PUBLIC_ACQUISITION', label: '공익사업 수용' },
+                          { value: 'RELATIONSHIP_TERMINATED', label: '직계존비속 관계 소멸' },
+                        ]}
+                      />
+                    </FormField>
+                  </div>
+
+                  {asset.carryoverTax.exclusionReason && asset.carryoverTax.exclusionReason !== 'NONE' && (
+                    <div className="notice notice-warning" style={{ marginTop: '0.5rem' }}>
+                      <p style={{ fontSize: '0.85rem' }}>
+                        적용배제 사유로 인해 이월과세가 적용되지 않습니다. 수증자(증여받은 자)의 취득가액 기준으로 양도차익을 계산합니다.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

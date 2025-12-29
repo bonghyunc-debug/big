@@ -8,6 +8,7 @@ import eFilingCredit2024 from './2024/eFilingCredit.json';
 import giftAndCarryover2024 from './2024/giftAndCarryover.json';
 import reliefs2024 from './2024/reliefs.json';
 import ruralSpecialTax2024 from './2024/ruralSpecialTax.json';
+import acquisitionRules2024 from './2024/acquisitionRules.json';
 
 export interface RulePack {
   rates: typeof rates2024;
@@ -19,6 +20,7 @@ export interface RulePack {
   giftAndCarryover: typeof giftAndCarryover2024;
   reliefs: typeof reliefs2024;
   ruralSpecialTax: typeof ruralSpecialTax2024;
+  acquisitionRules: typeof acquisitionRules2024;
 }
 
 const rulePacks: Record<number, RulePack> = {
@@ -32,6 +34,7 @@ const rulePacks: Record<number, RulePack> = {
     giftAndCarryover: giftAndCarryover2024,
     reliefs: reliefs2024,
     ruralSpecialTax: ruralSpecialTax2024,
+    acquisitionRules: acquisitionRules2024,
   },
   2023: {
     rates: rates2024,
@@ -43,6 +46,7 @@ const rulePacks: Record<number, RulePack> = {
     giftAndCarryover: giftAndCarryover2024,
     reliefs: reliefs2024,
     ruralSpecialTax: ruralSpecialTax2024,
+    acquisitionRules: acquisitionRules2024,
   },
   2025: {
     rates: rates2024,
@@ -54,6 +58,7 @@ const rulePacks: Record<number, RulePack> = {
     giftAndCarryover: giftAndCarryover2024,
     reliefs: reliefs2024,
     ruralSpecialTax: ruralSpecialTax2024,
+    acquisitionRules: acquisitionRules2024,
   },
 };
 
@@ -76,4 +81,5 @@ export {
   giftAndCarryover2024,
   reliefs2024,
   ruralSpecialTax2024,
+  acquisitionRules2024,
 };

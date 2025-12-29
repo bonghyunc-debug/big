@@ -1,0 +1,347 @@
+{
+  "meta": {
+    "version": "2024.1",
+    "effectiveFrom": "2024-01-01",
+    "effectiveTo": "2024-12-31",
+    "source": "소득세법 제97조, 제98조, 시행령 제162조, 제163조, 제154조",
+    "lastUpdated": "2024-12-28"
+  },
+  "acquireCause": {
+    "description": "취득원인별 취득가액 및 취득시기 규칙",
+    "types": {
+      "1": {
+        "code": "1",
+        "name": "매매",
+        "acquireDate": {
+          "rule": "대금청산일",
+          "fallback": "등기접수일",
+          "legalBasis": "소득세법 시행령 제162조 제1항"
+        },
+        "acquirePrice": {
+          "rule": "실지거래가액",
+          "includes": ["매입가액", "취득세", "등록세", "법무사비용", "중개수수료"],
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "2": {
+        "code": "2",
+        "name": "수용",
+        "acquireDate": {
+          "rule": "수용개시일",
+          "note": "사업시행자가 보상금 지급한 날",
+          "legalBasis": "소득세법 시행령 제162조 제1항 제2호"
+        },
+        "acquirePrice": {
+          "rule": "보상가액",
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "3": {
+        "code": "3",
+        "name": "협의매수",
+        "acquireDate": {
+          "rule": "대금청산일",
+          "legalBasis": "소득세법 시행령 제162조 제1항"
+        },
+        "acquirePrice": {
+          "rule": "협의보상가액",
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "4": {
+        "code": "4",
+        "name": "교환",
+        "acquireDate": {
+          "rule": "교환계약 이행완료일",
+          "legalBasis": "소득세법 시행령 제162조 제1항"
+        },
+        "acquirePrice": {
+          "rule": "교환당시 시가",
+          "note": "교환취득 자산의 시가",
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "5": {
+        "code": "5",
+        "name": "공매",
+        "acquireDate": {
+          "rule": "대금납부일",
+          "legalBasis": "소득세법 시행령 제162조 제1항"
+        },
+        "acquirePrice": {
+          "rule": "공매낙찰가액",
+          "includes": ["낙찰가액", "취득세", "기타 부대비용"],
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "6": {
+        "code": "6",
+        "name": "경매",
+        "acquireDate": {
+          "rule": "대금납부일",
+          "legalBasis": "소득세법 시행령 제162조 제1항"
+        },
+        "acquirePrice": {
+          "rule": "경매낙찰가액",
+          "includes": ["낙찰가액", "취득세", "기타 부대비용"],
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "7": {
+        "code": "7",
+        "name": "상속",
+        "acquireDate": {
+          "rule": "상속개시일",
+          "note": "피상속인 사망일",
+          "legalBasis": "소득세법 시행령 제162조 제1항 제3호"
+        },
+        "acquirePrice": {
+          "rule": "상증세법 평가액",
+          "method": "상속개시일 현재 상속세및증여세법 제60조~제66조 평가액",
+          "priority": [
+            "세무서장 결정·경정가액 (상증세법 제76조)",
+            "상증세법 평가액"
+          ],
+          "includes": ["상속세평가액", "취득세", "등록세", "법무사비용"],
+          "legalBasis": "소득세법 시행령 제163조 제9항"
+        },
+        "holdingPeriod": {
+          "forLtDeduction": "상속개시일부터 기산",
+          "forRateApplication": "피상속인 취득일부터 기산",
+          "forOneHouseExemption": {
+            "sameHousehold": "피상속인 보유기간 통산",
+            "differentHousehold": "상속개시일부터 기산"
+          },
+          "legalBasis": "소득세법 제95조 제4항, 시행령 제154조 제5항"
+        }
+      },
+      "8": {
+        "code": "8",
+        "name": "증여",
+        "acquireDate": {
+          "rule": "증여일",
+          "note": "증여계약 효력발생일",
+          "legalBasis": "소득세법 시행령 제162조 제1항 제3호"
+        },
+        "acquirePrice": {
+          "rule": "상증세법 평가액",
+          "method": "증여일 현재 상속세및증여세법 제60조~제66조 평가액",
+          "priority": [
+            "세무서장 결정·경정가액 (상증세법 제76조)",
+            "상증세법 평가액"
+          ],
+          "includes": ["증여세평가액", "취득세", "등록세", "법무사비용"],
+          "carryoverTaxException": "이월과세 적용 시 증여자 취득가액 사용",
+          "legalBasis": "소득세법 시행령 제163조 제9항"
+        },
+        "holdingPeriod": {
+          "forLtDeduction": "증여일부터 기산",
+          "forRateApplication": "증여일부터 기산",
+          "carryoverTaxException": "이월과세 적용 시 증여자 취득일부터 기산",
+          "legalBasis": "소득세법 제95조 제4항"
+        }
+      },
+      "9": {
+        "code": "9",
+        "name": "신축",
+        "acquireDate": {
+          "rule": "사용승인일",
+          "fallback": "사실상 사용일",
+          "legalBasis": "소득세법 시행령 제162조 제1항 제4호"
+        },
+        "acquirePrice": {
+          "rule": "건축비 + 토지취득가액",
+          "includes": ["건축비", "설계비", "감리비", "토지취득가액", "취득세"],
+          "legalBasis": "소득세법 제97조 제1항 제1호 가목"
+        }
+      },
+      "10": {
+        "code": "10",
+        "name": "출자/기타",
+        "acquireDate": {
+          "rule": "출자일 또는 취득사유 발생일",
+          "legalBasis": "소득세법 시행령 제162조"
+        },
+        "acquirePrice": {
+          "rule": "출자당시 시가 또는 취득원가",
+          "legalBasis": "소득세법 제97조 제1항"
+        }
+      }
+    }
+  },
+  "holdingPeriod": {
+    "description": "보유기간 계산 규칙 (용도별 상이)",
+    "types": {
+      "ltDeduction": {
+        "name": "장기보유특별공제용",
+        "legalBasis": "소득세법 제95조 제2항, 제4항",
+        "generalRule": "취득일부터 양도일까지",
+        "specialCases": {
+          "inheritance": {
+            "rule": "상속개시일부터 양도일까지",
+            "note": "상속인의 취득일인 상속개시일 기준",
+            "exception": "가업상속공제 적용 자산은 피상속인 취득일부터"
+          },
+          "gift": {
+            "rule": "증여일부터 양도일까지",
+            "exception": "이월과세 적용 시 증여자 취득일부터"
+          },
+          "carryoverTax": {
+            "rule": "증여자 취득일부터 양도일까지",
+            "legalBasis": "소득세법 제97조의2, 제95조 제4항 단서"
+          }
+        }
+      },
+      "rateApplication": {
+        "name": "세율적용용 (단기양도 판정)",
+        "legalBasis": "소득세법 제104조",
+        "generalRule": "취득일부터 양도일까지",
+        "specialCases": {
+          "inheritance": {
+            "rule": "피상속인 취득일부터 양도일까지",
+            "note": "단기양도 중과 회피를 위해 피상속인 보유기간 인정"
+          },
+          "gift": {
+            "rule": "증여일부터 양도일까지",
+            "note": "이월과세 적용 여부와 무관"
+          }
+        }
+      },
+      "oneHouseExemption": {
+        "name": "1세대1주택 비과세 판정용",
+        "legalBasis": "소득세법 시행령 제154조",
+        "generalRule": "취득일부터 양도일까지 2년 이상 보유",
+        "adjustedAreaRule": "보유 2년 + 거주 2년 (2017.8.3 이후 조정지역 취득)",
+        "specialCases": {
+          "inheritanceSameHousehold": {
+            "rule": "피상속인 보유기간 및 거주기간 통산",
+            "condition": "상속개시 당시 피상속인과 동일세대",
+            "legalBasis": "소득세법 시행령 제154조 제5항"
+          },
+          "inheritanceDifferentHousehold": {
+            "rule": "상속개시일부터 보유기간 기산",
+            "note": "별도세대 상속은 상속개시일이 취득일"
+          }
+        }
+      }
+    }
+  },
+  "oneHouseExemption": {
+    "description": "1세대1주택 비과세 요건",
+    "legalBasis": "소득세법 제89조 제1항 제3호, 시행령 제154조",
+    "basicRequirements": {
+      "holdingPeriod": {
+        "years": 2,
+        "note": "양도일 현재 2년 이상 보유"
+      },
+      "residencePeriod": {
+        "required": false,
+        "adjustedAreaRequired": true,
+        "adjustedAreaYears": 2,
+        "adjustedAreaEffectiveFrom": "2017-08-03",
+        "note": "조정대상지역 취득 주택은 거주 2년 필요"
+      },
+      "singleHouse": {
+        "rule": "양도일 현재 1세대가 국내에 1주택 보유",
+        "exceptions": ["일시적 2주택", "상속주택", "혼인합가", "동거봉양"]
+      }
+    },
+    "highValueHousing": {
+      "threshold": 1200000000,
+      "method": "안분과세",
+      "formula": "(양도가액 - 12억) / 양도가액",
+      "note": "12억 초과분만 과세",
+      "legalBasis": "소득세법 시행령 제160조"
+    },
+    "exemptionExclusions": {
+      "holdingPeriodExempt": [
+        "해외이주 (출국 후 2년 내 양도)",
+        "1년 이상 국외거주 취학/근무 (출국 후 2년 내 양도)",
+        "건설임대주택 5년 이상 거주 후 취득"
+      ],
+      "residencePeriodExempt": [
+        "1년 이상 거주 후 취학/근무/질병 사유 양도",
+        "조정지역 고시 전 계약금 지급"
+      ]
+    },
+    "inheritedHouseSpecial": {
+      "sameHousehold": {
+        "holdingPeriod": "피상속인 보유기간 통산",
+        "residencePeriod": "피상속인 거주기간 통산",
+        "note": "상속 즉시 양도해도 비과세 가능"
+      },
+      "differentHousehold": {
+        "holdingPeriod": "상속개시일부터 기산",
+        "residencePeriod": "상속개시일부터 기산",
+        "note": "2년 보유/거주 요건 충족 필요"
+      }
+    }
+  },
+  "shortTermRates": {
+    "description": "단기양도 세율 체계",
+    "legalBasis": "소득세법 제104조 제1항",
+    "realEstate": {
+      "under1Year": { "rate": 50, "note": "1년 미만 보유" },
+      "under2Years": { "rate": 40, "note": "1년 이상 2년 미만" },
+      "over2Years": { "rate": "기본세율", "note": "2년 이상" }
+    },
+    "presaleRightAndMembership": {
+      "description": "분양권 및 조합원입주권 세율",
+      "effectiveFrom": "2021-06-01",
+      "presaleRight": {
+        "under1Year": { "rate": 70, "note": "1년 미만" },
+        "under2Years": { "rate": 60, "note": "1년 이상 2년 미만" },
+        "over2Years": { "rate": 60, "note": "2년 이상도 60% (기본세율 미적용)" }
+      },
+      "membershipRight": {
+        "under1Year": { "rate": 70, "note": "1년 미만" },
+        "under2Years": { "rate": 60, "note": "1년 이상 2년 미만" },
+        "over2Years": { "rate": "기본세율", "note": "2년 이상은 기본세율" }
+      },
+      "assetTypeCodes": {
+        "presaleRight": "26",
+        "membershipRight": "25"
+      }
+    },
+    "unregistered": {
+      "rate": 70,
+      "note": "미등기 양도",
+      "legalBasis": "소득세법 제104조 제1항 제14호"
+    }
+  },
+  "multiHomeSurtax": {
+    "description": "다주택 중과세율",
+    "legalBasis": "소득세법 제104조 제7항",
+    "adjustedArea2Home": {
+      "additionalRate": 20,
+      "suspendFrom": "2022-05-10",
+      "suspendTo": "2026-05-09",
+      "note": "조정대상지역 2주택 중과"
+    },
+    "adjustedArea3HomeOrMore": {
+      "additionalRate": 30,
+      "suspendFrom": "2022-05-10",
+      "suspendTo": "2026-05-09",
+      "note": "조정대상지역 3주택 이상 중과"
+    },
+    "houseCountIncludes": {
+      "house": true,
+      "membershipRight": true,
+      "presaleRight": {
+        "included": true,
+        "effectiveFrom": "2021-01-01",
+        "note": "2021년 이후 취득분부터 주택 수 포함"
+      }
+    }
+  },
+  "adjustedAreaList": {
+    "description": "조정대상지역 (2024년 12월 기준)",
+    "currentAreas": [
+      { "city": "서울특별시", "district": "강남구" },
+      { "city": "서울특별시", "district": "서초구" },
+      { "city": "서울특별시", "district": "송파구" },
+      { "city": "서울특별시", "district": "용산구" }
+    ],
+    "note": "조정대상지역은 수시로 변경되므로 양도일 기준 확인 필요"
+  }
+}

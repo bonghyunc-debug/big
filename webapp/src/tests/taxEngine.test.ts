@@ -538,3 +538,787 @@ describe('계산 엔진', () => {
     expect(result.errors).toHaveLength(0);
   });
 });
+
+// 이월과세 테스트 (소득세법 제97조의2)
+describe('이월과세 (소득세법 제97조의2)', () => {
+  it('부동산 이월과세 - 10년 이내 양도 (2023년 이후 증여)', () => {
+    const testCase: TaxCase = {
+      id: 'test-carryover-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '이월과세',
+        rrn: '700101-1234567',
+        address: '서울특별시 강남구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-carryover-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2023-06-15', // 증여받은 날
+          transferPrice: 500000000, // 5억
+          acquirePrice: 400000000,  // 증여 시 평가액 (사용 안 함)
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+          carryoverTax: {
+            enabled: true,
+            giftDate: '2023-06-15',
+            donorAcquireDate: '2010-01-01', // 증여자 취득일
+            donorAcquireCost: 100000000, // 증여자 취득가액 1억
+            giftTaxPaid: 50000000, // 증여세 5천만원
+            giftTaxBase: 300000000,
+            totalGiftTaxBase: 300000000,
+            donorRelation: 'spouse',
+            exclusionReason: 'NONE',
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 유효 취득가액 = 증여자 취득가액 1억
+    expect(assetResult.effectiveAcquirePrice).toBe(100000000);
+
+    // 양도차익 = 5억 - 1억 = 4억
+    // 증여세 상당액은 양도차익(4억) 한도로 산입되므로 5천만원 전액 산입
+    // 최종 양도차익 = 4억 - 5천만원 = 3.5억
+    expect(assetResult.transferGainTotal).toBe(350000000);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('이월과세 증여세 상당액 한도 적용 (양도차익 초과)', () => {
+    const testCase: TaxCase = {
+      id: 'test-carryover-limit-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '한도초과',
+        rrn: '750101-1234567',
+        address: '서울특별시 서초구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-carryover-limit-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2023-06-15',
+          transferPrice: 150000000, // 1.5억
+          acquirePrice: 140000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+          carryoverTax: {
+            enabled: true,
+            giftDate: '2023-06-15',
+            donorAcquireDate: '2015-01-01',
+            donorAcquireCost: 100000000, // 증여자 취득가액 1억
+            giftTaxPaid: 80000000, // 증여세 8천만원 (양도차익 5천만원 초과)
+            giftTaxBase: 0,
+            totalGiftTaxBase: 0,
+            donorRelation: 'lineal',
+            exclusionReason: 'NONE',
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 양도차익(증여세 적용 전) = 1.5억 - 1억 = 5천만원
+    // 증여세 8천만원 > 양도차익 5천만원 → 한도로 5천만원만 산입
+    // 최종 양도차익 = 5천만원 - 5천만원 = 0
+    expect(assetResult.transferGainTotal).toBe(0);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('이월과세 기간 초과 - 미적용', () => {
+    const testCase: TaxCase = {
+      id: 'test-carryover-period-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '기간초과',
+        rrn: '800101-1234567',
+        address: '서울특별시 마포구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-period-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2012-06-15', // 증여받은 날 (12년 전)
+          transferPrice: 500000000,
+          acquirePrice: 300000000, // 증여 시 평가액
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+          carryoverTax: {
+            enabled: true,
+            giftDate: '2012-06-15', // 12년 전 증여 (5년 초과)
+            donorAcquireDate: '2005-01-01',
+            donorAcquireCost: 100000000,
+            giftTaxPaid: 50000000,
+            giftTaxBase: 0,
+            totalGiftTaxBase: 0,
+            donorRelation: 'spouse',
+            exclusionReason: 'NONE',
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 2012년 증여(5년 기간)는 2017년에 만료 → 2024년 양도 시 이월과세 미적용
+    // 취득가액 = 증여 시 평가액 3억 (증여자 취득가액 아님)
+    expect(assetResult.effectiveAcquirePrice).toBe(300000000);
+
+    // 양도차익 = 5억 - 3억 = 2억
+    expect(assetResult.transferGainTotal).toBe(200000000);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('이월과세 적용배제 - 1세대 1주택 비과세', () => {
+    const testCase: TaxCase = {
+      id: 'test-carryover-exclusion-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '비과세',
+        rrn: '850101-1234567',
+        address: '서울특별시 강서구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-exclusion-001',
+          rateCode: '1-52',
+          assetTypeCode: '7', // 주택
+          transferDate: '2024-06-15',
+          acquireDate: '2023-06-15',
+          transferPrice: 900000000, // 9억 (12억 이하 비과세)
+          acquirePrice: 700000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '01',
+          holdingYears: 3,
+          residenceYears: 3,
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: true, // 1세대 1주택 비과세
+            highValueHousing: false,
+          },
+          carryoverTax: {
+            enabled: true,
+            giftDate: '2023-06-15',
+            donorAcquireDate: '2020-01-01',
+            donorAcquireCost: 500000000,
+            giftTaxPaid: 30000000,
+            giftTaxBase: 0,
+            totalGiftTaxBase: 0,
+            donorRelation: 'spouse',
+            exclusionReason: 'NONE', // 자동으로 배제됨
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 1세대 1주택 비과세 시 이월과세 자동 배제
+    // 취득가액 = 증여 시 가액 7억 (증여자 취득가액 아님)
+    expect(assetResult.effectiveAcquirePrice).toBe(700000000);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('이월과세 보유기간 기산일 - 증여자 취득일 적용', () => {
+    const testCase: TaxCase = {
+      id: 'test-carryover-holding-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '보유기간',
+        rrn: '900101-1234567',
+        address: '경기도 성남시',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-holding-001',
+          rateCode: '1-10',
+          assetTypeCode: '1',
+          transferDate: '2024-06-15',
+          acquireDate: '2023-01-01', // 증여받은 날 (1.5년)
+          transferPrice: 500000000,
+          acquirePrice: 400000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02', // 일반 장특공
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+          carryoverTax: {
+            enabled: true,
+            giftDate: '2023-01-01',
+            donorAcquireDate: '2010-01-01', // 증여자 취득일 (14년)
+            donorAcquireCost: 100000000,
+            giftTaxPaid: 0,
+            giftTaxBase: 0,
+            totalGiftTaxBase: 0,
+            donorRelation: 'lineal',
+            exclusionReason: 'NONE',
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 이월과세 적용 시 보유기간 = 증여자 취득일(2010)부터 양도일(2024)까지 = 14년
+    // 장기보유특별공제율 = 14년 × 2% = 28%
+    expect(assetResult.ltDeductionRate).toBe(28);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
+// 상속자산 테스트 (소득세법 시행령 제162조, 제163조)
+describe('상속자산 양도 (소득세법 시행령 제162조, 제163조)', () => {
+  it('상속자산 취득가액 - 상속세 평가액 적용', () => {
+    const testCase: TaxCase = {
+      id: 'test-inheritance-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '상속인',
+        rrn: '800101-1234567',
+        address: '서울특별시 종로구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-inherit-001',
+          rateCode: '1-10',
+          assetTypeCode: '1', // 토지
+          transferDate: '2024-06-15',
+          acquireDate: '2022-01-15', // 상속개시일
+          acquireCause: '7', // 상속
+          transferPrice: 800000000, // 8억
+          acquirePrice: 500000000, // 상속세 평가액
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+          inheritanceInfo: {
+            enabled: true,
+            inheritanceDate: '2022-01-15', // 상속개시일 (피상속인 사망일)
+            decedentAcquireDate: '2010-01-01', // 피상속인 취득일
+            decedentAcquireCost: 200000000, // 피상속인 취득가액
+            decedentAcquireCause: '1', // 매매
+            inheritanceTaxValue: 500000000, // 상속세 평가액
+            sameHousehold: false,
+            decedentHoldingYears: 12,
+            decedentResidenceYears: 0,
+            businessSuccession: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 상속자산 취득가액 = 상속세 평가액 5억
+    expect(assetResult.effectiveAcquirePrice).toBe(500000000);
+
+    // 양도차익 = 8억 - 5억 = 3억
+    expect(assetResult.transferGainTotal).toBe(300000000);
+
+    // 장특공: 상속개시일(2022)부터 양도일(2024)까지 = 2년 → 3년 미만 적용 안 됨
+    expect(assetResult.ltDeductionRate).toBe(0);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('상속자산 세율적용 보유기간 - 피상속인 취득일부터 기산', () => {
+    const testCase: TaxCase = {
+      id: 'test-inheritance-rate-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '상속인',
+        rrn: '800101-1234567',
+        address: '서울특별시 성북구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-rate-001',
+          rateCode: '1-10',
+          assetTypeCode: '2', // 주택
+          transferDate: '2024-06-15',
+          acquireDate: '2024-01-15', // 상속개시일 (6개월 전)
+          acquireCause: '7', // 상속
+          transferPrice: 500000000,
+          acquirePrice: 400000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+          inheritanceInfo: {
+            enabled: true,
+            inheritanceDate: '2024-01-15',
+            decedentAcquireDate: '2015-01-01', // 피상속인 취득일 (9년 전)
+            decedentAcquireCost: 200000000,
+            decedentAcquireCause: '1',
+            inheritanceTaxValue: 400000000,
+            sameHousehold: false,
+            decedentHoldingYears: 9,
+            decedentResidenceYears: 0,
+            businessSuccession: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 세율적용 보유기간: 피상속인 취득일(2015)부터 = 9년 → 기본세율 적용
+    // (상속 후 6개월만 보유했으면 50% 단기양도 세율이 적용됐을 것)
+    // 상속자산은 피상속인 취득일 기준으로 단기양도 판정하므로 기본세율
+    expect(assetResult.rateCode).toBe('1-10');
+    expect(assetResult.rateType).toBe('progressive');
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('동일세대 상속주택 - 피상속인 보유/거주기간 통산', () => {
+    const testCase: TaxCase = {
+      id: 'test-inheritance-same-household-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '동일세대상속인',
+        rrn: '750101-1234567',
+        address: '서울특별시 강남구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-same-household-001',
+          rateCode: '1-52',
+          assetTypeCode: '2', // 주택
+          transferDate: '2024-06-15',
+          acquireDate: '2024-01-15', // 상속개시일
+          acquireCause: '7', // 상속
+          transferPrice: 900000000, // 9억 (12억 이하)
+          acquirePrice: 700000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '01', // 1세대1주택
+          holdingYears: 0, // 본인 보유기간
+          residenceYears: 0, // 본인 거주기간
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: true, // 1세대 1주택 비과세
+            highValueHousing: false,
+          },
+          inheritanceInfo: {
+            enabled: true,
+            inheritanceDate: '2024-01-15',
+            decedentAcquireDate: '2010-01-01',
+            decedentAcquireCost: 300000000,
+            decedentAcquireCause: '1',
+            inheritanceTaxValue: 700000000,
+            sameHousehold: true, // 동일세대
+            decedentHoldingYears: 14,
+            decedentResidenceYears: 10,
+            businessSuccession: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+
+    // 1세대 1주택 비과세 → 양도소득세 0원 (gainIncome 계산은 되지만 비과세)
+    // 동일세대 상속 시 피상속인 거주기간 통산으로 비과세 요건 충족
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
+// 분양권/조합원입주권 세율 테스트 (소득세법 제104조)
+describe('분양권/조합원입주권 세율 (소득세법 제104조)', () => {
+  it('분양권 1년 미만 - 70% 세율', () => {
+    const testCase: TaxCase = {
+      id: 'test-presale-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '분양권투자자',
+        rrn: '850101-1234567',
+        address: '경기도 화성시',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-presale-001',
+          rateCode: '1-40', // 기본값 (자동 조정됨)
+          assetTypeCode: '26', // 분양권
+          transferDate: '2024-06-15',
+          acquireDate: '2024-01-15', // 5개월 보유
+          transferPrice: 200000000,
+          acquirePrice: 150000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '03', // 배제
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 분양권 1년 미만 → 70% 세율
+    expect(assetResult.rateCode).toBe('1-38');
+    expect(assetResult.rateType).toBe('flat');
+    expect(assetResult.rateValue).toBe(50); // rates.json의 shortTerm1YearRights
+
+    // 분양권은 장특공 배제
+    expect(assetResult.ltDeductionRate).toBe(0);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('분양권 2년 이상 - 60% 세율 (기본세율 미적용)', () => {
+    const testCase: TaxCase = {
+      id: 'test-presale-002',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '분양권장기보유자',
+        rrn: '800101-1234567',
+        address: '경기도 수원시',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-presale-002',
+          rateCode: '1-40',
+          assetTypeCode: '26', // 분양권
+          transferDate: '2024-06-15',
+          acquireDate: '2021-01-15', // 3년 6개월 보유
+          transferPrice: 300000000,
+          acquirePrice: 200000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '03', // 배제
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 분양권 2년 이상도 60% 세율 고정 (기본세율 미적용)
+    expect(assetResult.rateCode).toBe('1-40');
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('조합원입주권 2년 이상 - 기본세율 적용', () => {
+    const testCase: TaxCase = {
+      id: 'test-membership-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reportType: 'PRELIM',
+      taxYear: 2024,
+      taxpayer: {
+        name: '조합원',
+        rrn: '700101-1234567',
+        address: '서울특별시 은평구',
+      },
+      bp1Assets: [
+        {
+          id: 'asset-membership-001',
+          rateCode: '1-30',
+          assetTypeCode: '25', // 조합원입주권
+          transferDate: '2024-06-15',
+          acquireDate: '2020-01-15', // 4년 5개월 보유
+          transferPrice: 600000000,
+          acquirePrice: 400000000,
+          acquirePriceType: 'ACTUAL',
+          ltDeductionCode: '02',
+          userFlags: {
+            unregistered: false,
+            nonBusinessLand: false,
+            multiHomeSurtax: false,
+            multiHomeCount: 0,
+            adjustedArea: false,
+            oneHouseExemption: false,
+            highValueHousing: false,
+          },
+        },
+      ],
+      bp2Assets: [],
+      reliefs: [],
+      adjustments: {
+        prevReportedGainIncome: 0,
+        foreignTaxCredit: 0,
+        withholdingCredit: 0,
+        pensionCredit: 0,
+        prevTaxPaid: 0,
+      },
+      flags: {
+        eFiling: true,
+        proxyFiling: false,
+      },
+    };
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 조합원입주권 2년 이상 → 기본세율 적용
+    expect(assetResult.rateCode).toBe('1-30');
+    expect(assetResult.rateType).toBe('progressive');
+
+    // 조합원입주권은 장특공 적용 (4년 → 8%)
+    expect(assetResult.ltDeductionRate).toBe(8);
+
+    // 오류 없음
+    expect(result.errors).toHaveLength(0);
+  });
+});

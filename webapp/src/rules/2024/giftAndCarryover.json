@@ -1,9 +1,10 @@
 {
   "meta": {
-    "version": "2024.1",
+    "version": "2024.2",
     "effectiveFrom": "2024-01-01",
     "effectiveTo": "2024-12-31",
-    "source": "소득세법 제88조, 시행령 제159조, 제97조의2"
+    "source": "소득세법 제97조의2, 시행령 제163조의2, 제159조",
+    "lastUpdated": "2024-12-28"
   },
   "giftWithDebt": {
     "description": "부담부증여(시행령 제159조)",
@@ -26,27 +27,67 @@
   },
   "carryoverTax": {
     "description": "이월과세(소득세법 제97조의2)",
+    "legalBasis": "소득세법 제97조의2, 시행령 제163조의2",
     "conditions": {
       "donorRelation": ["배우자", "직계존비속"],
       "period": {
         "realEstate": {
           "years": 10,
-          "note": "증여일로부터 10년 이내 양도"
+          "yearsBeforeAmendment": 5,
+          "amendmentDate": "2023-01-01",
+          "note": "2023년 이후 증여분 10년, 2022년 이전 증여분 5년"
         },
         "stock": {
           "years": 1,
-          "note": "주식은 증여일로부터 1년 이내 양도"
+          "effectiveFrom": "2025-01-01",
+          "note": "주식은 증여일로부터 1년 이내 양도 (2025년 시행)"
         }
+      },
+      "assetTypes": {
+        "realEstate": ["토지", "건물", "부동산취득권리", "특정시설물이용권"],
+        "stock": ["대주주상장주식", "비상장주식", "해외주식"]
       }
     },
     "acquireCost": {
       "base": "증여자의 취득 당시 실지거래가액",
       "addable": "납부(또는 납부할) 증여세 상당액",
-      "note": "증여세 상당액은 필요경비 산입"
+      "limit": "양도차익을 한도로 함",
+      "note": "증여세 상당액은 필요경비 산입 (양도차익 한도, 시행령 제163조의2 제2항)"
+    },
+    "holdingPeriod": {
+      "startFrom": "증여자의 취득일",
+      "note": "이월과세 적용 시 보유기간은 증여자 취득일부터 기산"
+    },
+    "exclusions": {
+      "oneHouseExemption": {
+        "applies": true,
+        "note": "수증자가 1세대 1주택 비과세 적용받는 경우 이월과세 배제"
+      },
+      "lowerTaxRule": {
+        "applies": true,
+        "note": "이월과세 적용 결정세액 < 미적용 결정세액인 경우 이월과세 배제"
+      },
+      "deathOfDonor": {
+        "applies": true,
+        "note": "배우자 사망으로 혼인관계 소멸 시 이월과세 배제"
+      },
+      "publicAcquisition": {
+        "applies": true,
+        "note": "공익사업을 위한 수용 시 이월과세 배제"
+      },
+      "relationshipTermination": {
+        "applies": true,
+        "note": "직계존비속 관계 소멸(파양, 사망) 시 이월과세 배제"
+      }
     },
     "formula": {
+      "giftTaxExpense": "MIN(증여세산출세액상당액, 양도차익)",
       "giftTaxCredit": "MIN(증여시 납부세액, 양도소득산출세액 × (이월과세적용양도차익 / 총양도차익))",
-      "note": "증여세 기납부액 공제"
+      "note": "증여세 기납부액은 세액공제 또는 필요경비 중 선택 가능"
+    },
+    "giftTaxCalculation": {
+      "formula": "(증여받은 자산 증여세 산출세액) × (당해 양도자산 증여세 과세가액 / 증여자산 증여세 과세가액 합계)",
+      "note": "여러 자산을 함께 증여받은 경우 양도자산에 대한 증여세 안분 계산"
     }
   }
 }
