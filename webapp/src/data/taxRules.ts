@@ -20,11 +20,11 @@ export const ADJUSTMENT_AREAS: AdjustmentArea[] = [
   { code: '11170', name: '용산구', city: '서울특별시', district: '용산구', effectiveFrom: '2021-02-01', effectiveTo: null },
 ];
 
-// 다주택 중과 한시배제 기간
+// 다주택 중과 한시배제 기간 (2024.12 연장)
 export const MULTI_HOME_SURTAX_SUSPENSION = {
   startDate: '2022-05-10',
-  endDate: '2025-05-09',
-  description: '조정대상지역 다주택자 중과세율 한시 배제',
+  endDate: '2026-05-09',
+  description: '조정대상지역 다주택자 중과세율 한시 배제 (1년 연장)',
   legalBasis: '소득세법 제104조제7항',
 };
 

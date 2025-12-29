@@ -1188,10 +1188,10 @@ describe('분양권/조합원입주권 세율 (소득세법 제104조)', () => {
     const result = calculateTaxCase(testCase);
     const assetResult = result.assetResults[0];
 
-    // 분양권 1년 미만 → 70% 세율
+    // 분양권 1년 미만 → 70% 세율 (소득세법 제104조, 2021.6.1 이후)
     expect(assetResult.rateCode).toBe('1-38');
     expect(assetResult.rateType).toBe('flat');
-    expect(assetResult.rateValue).toBe(50); // rates.json의 shortTerm1YearRights
+    expect(assetResult.rateValue).toBe(70); // rates.json의 shortTerm1YearRights (2021.6.1 이후 70%)
 
     // 분양권은 장특공 배제
     expect(assetResult.ltDeductionRate).toBe(0);
