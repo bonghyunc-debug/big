@@ -870,7 +870,14 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 onChange={(v) =>
                   onUpdate({
                     giftWithDebt: {
-                      ...(asset.giftWithDebt ?? { assessedValue: 0, debtAmount: 0, donorAcquireCost: 0 }),
+                      ...(asset.giftWithDebt ?? {
+                        assessedValue: 0,
+                        debtAmount: 0,
+                        valuationMethod: 'MARKET_PRICE',
+                        donorActualAcquireCost: 0,
+                        donorStandardPriceAtAcquire: 0,
+                        donorAcquireCost: 0,
+                      }),
                       enabled: v,
                     },
                   })
@@ -879,38 +886,129 @@ function AssetForm({ asset, onUpdate, onRemove, index }: AssetFormProps) {
                 tooltip="채무를 인수하는 조건으로 증여받은 경우"
               />
               {asset.giftWithDebt?.enabled && (
-                <div className="form-row">
-                  <FormField label="증여재산평가액">
-                    <NumberInput
-                      value={asset.giftWithDebt.assessedValue}
-                      onChange={(v) =>
-                        onUpdate({
-                          giftWithDebt: { ...asset.giftWithDebt!, assessedValue: v },
-                        })
-                      }
-                    />
-                  </FormField>
-                  <FormField label="인수채무액">
-                    <NumberInput
-                      value={asset.giftWithDebt.debtAmount}
-                      onChange={(v) =>
-                        onUpdate({
-                          giftWithDebt: { ...asset.giftWithDebt!, debtAmount: v },
-                        })
-                      }
-                    />
-                  </FormField>
-                  <FormField label="증여자취득가액">
-                    <NumberInput
-                      value={asset.giftWithDebt.donorAcquireCost}
-                      onChange={(v) =>
-                        onUpdate({
-                          giftWithDebt: { ...asset.giftWithDebt!, donorAcquireCost: v },
-                        })
-                      }
-                    />
-                  </FormField>
-                </div>
+                <>
+                  <div className="form-row">
+                    <FormField label="증여재산평가액" tooltip="상속세및증여세법에 따른 평가액">
+                      <NumberInput
+                        value={asset.giftWithDebt.assessedValue}
+                        onChange={(v) =>
+                          onUpdate({
+                            giftWithDebt: { ...asset.giftWithDebt!, assessedValue: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField label="인수채무액" tooltip="수증자가 인수한 채무 (= 양도가액)">
+                      <NumberInput
+                        value={asset.giftWithDebt.debtAmount}
+                        onChange={(v) =>
+                          onUpdate({
+                            giftWithDebt: { ...asset.giftWithDebt!, debtAmount: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                  </div>
+
+                  <div className="form-row" style={{ marginTop: '1rem' }}>
+                    <FormField
+                      label="증여재산 평가방법"
+                      tooltip="평가방법에 따라 적용할 취득가액 기준이 달라집니다 (시행령 제159조 제1항)"
+                      evidence={{ text: '시행령 제159조 제1항' }}
+                    >
+                      <Select
+                        value={asset.giftWithDebt.valuationMethod ?? 'MARKET_PRICE'}
+                        onChange={(v) =>
+                          onUpdate({
+                            giftWithDebt: {
+                              ...asset.giftWithDebt!,
+                              valuationMethod: v as 'MARKET_PRICE' | 'SUPPLEMENTARY_STANDARD' | 'RENT_CONVERSION' | 'COLLATERAL_DEBT',
+                            },
+                          })
+                        }
+                        options={[
+                          { value: 'MARKET_PRICE', label: '시가 (매매/감정/유사매매사례가액)' },
+                          { value: 'SUPPLEMENTARY_STANDARD', label: '보충적 평가방법 (기준시가)' },
+                          { value: 'RENT_CONVERSION', label: '임대료 환산가액' },
+                          { value: 'COLLATERAL_DEBT', label: '담보채권액' },
+                        ]}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* 평가방법별 취득가액 입력 안내 */}
+                  {asset.giftWithDebt.valuationMethod === 'MARKET_PRICE' || !asset.giftWithDebt.valuationMethod ? (
+                    <div className="notice notice-info" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <p style={{ fontSize: '0.85rem' }}>
+                        <strong>시가 평가:</strong> 증여자의 실지취득가액을 적용합니다.
+                      </p>
+                    </div>
+                  ) : asset.giftWithDebt.valuationMethod === 'SUPPLEMENTARY_STANDARD' ? (
+                    <div className="notice notice-info" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <p style={{ fontSize: '0.85rem' }}>
+                        <strong>보충적 평가:</strong> 증여자의 취득 당시 기준시가를 적용합니다.
+                      </p>
+                    </div>
+                  ) : asset.giftWithDebt.valuationMethod === 'RENT_CONVERSION' ? (
+                    <div className="notice notice-warning" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <p style={{ fontSize: '0.85rem' }}>
+                        <strong>임대료 환산가액:</strong> 2020.2.11 이후 양도분은 취득 당시 기준시가,
+                        이전 양도분은 실지취득가액 적용
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="notice notice-warning" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <p style={{ fontSize: '0.85rem' }}>
+                        <strong>담보채권액:</strong> 2023.2.28 이후 양도분은 취득 당시 기준시가,
+                        이전 양도분은 실지취득가액 적용 (2023년 개정)
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="form-row">
+                    <FormField label="증여자 실지취득가액" tooltip="증여자가 실제로 취득한 금액">
+                      <NumberInput
+                        value={asset.giftWithDebt.donorActualAcquireCost ?? asset.giftWithDebt.donorAcquireCost ?? 0}
+                        onChange={(v) =>
+                          onUpdate({
+                            giftWithDebt: {
+                              ...asset.giftWithDebt!,
+                              donorActualAcquireCost: v,
+                              donorAcquireCost: v, // 하위호환
+                            },
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField
+                      label="증여자 취득 당시 기준시가"
+                      tooltip="보충적 평가/임대료환산/담보채권액 방식 사용 시 필요"
+                    >
+                      <NumberInput
+                        value={asset.giftWithDebt.donorStandardPriceAtAcquire ?? 0}
+                        onChange={(v) =>
+                          onUpdate({
+                            giftWithDebt: { ...asset.giftWithDebt!, donorStandardPriceAtAcquire: v },
+                          })
+                        }
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* 안분 계산 결과 미리보기 */}
+                  {asset.giftWithDebt.assessedValue > 0 && asset.giftWithDebt.debtAmount > 0 && (
+                    <div className="calculated-info" style={{ marginTop: '1rem' }}>
+                      <span className="info-label">채무 비율:</span>
+                      <span className="info-value">
+                        {((asset.giftWithDebt.debtAmount / asset.giftWithDebt.assessedValue) * 100).toFixed(1)}%
+                      </span>
+                      <span className="info-label" style={{ marginLeft: '1rem' }}>양도가액:</span>
+                      <span className="info-value">
+                        {asset.giftWithDebt.debtAmount.toLocaleString()}원 (채무액)
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
 
               <h5>이월과세 (소득세법 제97조의2)</h5>

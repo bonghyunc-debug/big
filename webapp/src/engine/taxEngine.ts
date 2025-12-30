@@ -18,6 +18,7 @@ import {
   calculateHighValueRatio,
   calculateConvertedAcquirePrice,
   calculateGiftWithDebtPortion,
+  determineGiftWithDebtAcquireCost,
   calculateProgressiveTax,
   calculateFlatTax,
   getDeductionBucket,
@@ -26,6 +27,7 @@ import {
   getAmendReportReductionRate,
   type TaxBracket,
   type DeductionBucket,
+  type GiftValuationMethod,
 } from './utils';
 
 /**
@@ -690,23 +692,48 @@ function calculateBP1Asset(
 
   // 부담부증여 처리 (소득세법 시행령 제159조)
   // 양도가액 = 채무액, 취득가액 = 증여자취득가액 × (채무액/증여재산가액)
+  // 2023년 개정: 증여재산 평가방법에 따라 취득가액 기준 결정
   if (asset.giftWithDebt?.enabled) {
-    const portion = calculateGiftWithDebtPortion(
-      asset.giftWithDebt.assessedValue,
-      asset.giftWithDebt.debtAmount,
-      asset.giftWithDebt.donorAcquireCost
+    const giftWithDebt = asset.giftWithDebt;
+
+    // 증여재산 평가방법에 따른 취득가액 결정 (시행령 제159조 제1항)
+    const valuationMethod = (giftWithDebt.valuationMethod ?? 'MARKET_PRICE') as GiftValuationMethod;
+
+    // 하위호환: 새 필드가 없으면 기존 donorAcquireCost 사용
+    const donorActual = giftWithDebt.donorActualAcquireCost ?? giftWithDebt.donorAcquireCost ?? 0;
+    const donorStandard = giftWithDebt.donorStandardPriceAtAcquire ?? 0;
+
+    const acquireCostResult = determineGiftWithDebtAcquireCost(
+      valuationMethod,
+      donorActual,
+      donorStandard,
+      asset.transferDate,
+      giftWithDebt.giftDate
     );
+
+    const portion = calculateGiftWithDebtPortion(
+      giftWithDebt.assessedValue,
+      giftWithDebt.debtAmount,
+      acquireCostResult.acquireCost
+    );
+
     // 법령: 양도가액 = 채무액 (시행령 제159조)
     effectiveTransferPrice = portion.transferPricePortion;
-    // 법령: 취득가액 = 증여자취득가액 × (채무액/증여재산가액)
+    // 법령: 취득가액 = (평가방법별 취득가액) × (채무액/증여재산가액)
     effectiveAcquirePrice = portion.acquirePricePortion;
+
     logs.push({
       step: 'CALC-GIFT-159',
       description: '부담부증여 안분 (소득세법 시행령 제159조)',
       values: {
-        assessedValue: asset.giftWithDebt.assessedValue,
-        debtAmount: asset.giftWithDebt.debtAmount,
-        donorAcquireCost: asset.giftWithDebt.donorAcquireCost,
+        assessedValue: giftWithDebt.assessedValue,
+        debtAmount: giftWithDebt.debtAmount,
+        valuationMethod,
+        donorActualAcquireCost: donorActual,
+        donorStandardPriceAtAcquire: donorStandard,
+        appliedAcquireCost: acquireCostResult.acquireCost,
+        acquireCostBasis: acquireCostResult.basis,
+        legalBasis: acquireCostResult.legalBasis,
         ratio: portion.ratio,
         effectiveTransferPrice: portion.transferPricePortion,
         effectiveAcquirePrice: portion.acquirePricePortion,

@@ -79,6 +79,96 @@ export function calculateConvertedAcquirePrice(
 }
 
 /**
+ * 부담부증여 증여재산 평가방법
+ */
+export type GiftValuationMethod =
+  | 'MARKET_PRICE'           // 시가 (매매/감정/유사매매사례가액)
+  | 'SUPPLEMENTARY_STANDARD' // 보충적 평가방법 (기준시가)
+  | 'RENT_CONVERSION'        // 임대료 환산가액
+  | 'COLLATERAL_DEBT';       // 담보채권액
+
+/**
+ * 부담부증여 평가방법별 취득가액 결정 (소득세법 시행령 제159조 제1항)
+ *
+ * 2023년 개정 반영:
+ * - 시가 평가: 실지취득가액
+ * - 보충적 평가방법: 취득 당시 기준시가
+ * - 임대료 환산가액: 2020.2.11 이후 양도분 → 기준시가
+ * - 담보채권액: 2023.2.28 이후 양도분 → 기준시가
+ */
+export function determineGiftWithDebtAcquireCost(
+  valuationMethod: GiftValuationMethod,
+  donorActualAcquireCost: number,
+  donorStandardPriceAtAcquire: number,
+  transferDate: string,
+  giftDate?: string
+): {
+  acquireCost: number;
+  basis: 'ACTUAL' | 'STANDARD';
+  legalBasis: string;
+} {
+  const transferDateObj = new Date(transferDate);
+
+  switch (valuationMethod) {
+    case 'MARKET_PRICE':
+      // 시가 평가: 항상 실지취득가액
+      return {
+        acquireCost: donorActualAcquireCost,
+        basis: 'ACTUAL',
+        legalBasis: '시행령 제159조 제1항 - 시가평가 시 실지취득가액',
+      };
+
+    case 'SUPPLEMENTARY_STANDARD':
+      // 보충적 평가방법: 항상 기준시가
+      return {
+        acquireCost: donorStandardPriceAtAcquire,
+        basis: 'STANDARD',
+        legalBasis: '시행령 제159조 제1항 - 보충적평가 시 취득당시 기준시가',
+      };
+
+    case 'RENT_CONVERSION':
+      // 임대료 환산가액: 2020.2.11 이후 양도분은 기준시가
+      const rentConversionCutoff = new Date('2020-02-11');
+      if (transferDateObj >= rentConversionCutoff) {
+        return {
+          acquireCost: donorStandardPriceAtAcquire,
+          basis: 'STANDARD',
+          legalBasis: '시행령 제159조 제1항 - 임대료환산가액(2020.2.11 이후) 기준시가',
+        };
+      }
+      return {
+        acquireCost: donorActualAcquireCost,
+        basis: 'ACTUAL',
+        legalBasis: '시행령 제159조 제1항 - 임대료환산가액(2020.2.10 이전) 실지취득가액',
+      };
+
+    case 'COLLATERAL_DEBT':
+      // 담보채권액: 2023.2.28 이후 양도분은 기준시가
+      const collateralCutoff = new Date('2023-02-28');
+      if (transferDateObj >= collateralCutoff) {
+        return {
+          acquireCost: donorStandardPriceAtAcquire,
+          basis: 'STANDARD',
+          legalBasis: '시행령 제159조 제1항 - 담보채권액(2023.2.28 이후) 기준시가',
+        };
+      }
+      return {
+        acquireCost: donorActualAcquireCost,
+        basis: 'ACTUAL',
+        legalBasis: '시행령 제159조 제1항 - 담보채권액(2023.2.27 이전) 실지취득가액',
+      };
+
+    default:
+      // 기본값: 실지취득가액
+      return {
+        acquireCost: donorActualAcquireCost,
+        basis: 'ACTUAL',
+        legalBasis: '시행령 제159조 제1항 - 기본 실지취득가액',
+      };
+  }
+}
+
+/**
  * 부담부증여 양도 해당 부분 계산
  * 시행령 제159조
  */

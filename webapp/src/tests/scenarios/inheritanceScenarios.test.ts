@@ -383,6 +383,193 @@ describe('I-007: 부담부증여 (채무인수 부분) - 소득세법 시행령 
   });
 });
 
+describe('I-007-2: 부담부증여 증여재산 평가방법별 취득가액 결정 (시행령 제159조 제1항 2023년 개정)', () => {
+  it('시가 평가 → 증여자 실지취득가액 적용', () => {
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '2',
+        transferDate: '2024-08-15',
+        acquireDate: '2024-01-15',
+        acquireCause: '8',
+        transferPrice: 1000000000,
+        acquirePrice: 800000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '03',
+        holdingYears: 0,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 800000000,  // 시가 평가
+          debtAmount: 200000000,
+          valuationMethod: 'MARKET_PRICE',
+          donorActualAcquireCost: 400000000,   // 실지취득가액
+          donorStandardPriceAtAcquire: 300000000, // 기준시가 (미사용)
+          donorAcquireCost: 400000000,
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 시가평가 → 실지취득가액(400M) 적용
+    // 비율 = 200M / 800M = 0.25
+    // 취득가액 = 400M × 0.25 = 100,000,000
+    expect(assetResult.effectiveAcquirePrice).toBe(100000000);
+    expect(assetResult.effectiveTransferPrice).toBe(200000000);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('보충적 평가방법 → 취득 당시 기준시가 적용', () => {
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '2',
+        transferDate: '2024-08-15',
+        acquireDate: '2024-01-15',
+        acquireCause: '8',
+        transferPrice: 1000000000,
+        acquirePrice: 600000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '03',
+        holdingYears: 0,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 600000000,  // 보충적 평가 (기준시가)
+          debtAmount: 300000000,
+          valuationMethod: 'SUPPLEMENTARY_STANDARD',
+          donorActualAcquireCost: 500000000,   // 실지취득가액 (미사용)
+          donorStandardPriceAtAcquire: 200000000, // 기준시가 적용
+          donorAcquireCost: 500000000,
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 보충적평가 → 기준시가(200M) 적용
+    // 비율 = 300M / 600M = 0.5
+    // 취득가액 = 200M × 0.5 = 100,000,000
+    expect(assetResult.effectiveAcquirePrice).toBe(100000000);
+    expect(assetResult.effectiveTransferPrice).toBe(300000000);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('임대료 환산가액 (2020.2.11 이후 양도) → 기준시가 적용', () => {
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '2',
+        transferDate: '2024-08-15', // 2020.2.11 이후
+        acquireDate: '2023-01-15',
+        acquireCause: '8',
+        transferPrice: 800000000,
+        acquirePrice: 500000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '02',
+        holdingYears: 1,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 500000000,
+          debtAmount: 250000000,
+          valuationMethod: 'RENT_CONVERSION',
+          donorActualAcquireCost: 400000000,
+          donorStandardPriceAtAcquire: 300000000,
+          donorAcquireCost: 400000000,
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 임대료환산(2020.2.11 이후) → 기준시가(300M) 적용
+    // 비율 = 250M / 500M = 0.5
+    // 취득가액 = 300M × 0.5 = 150,000,000
+    expect(assetResult.effectiveAcquirePrice).toBe(150000000);
+    expect(assetResult.effectiveTransferPrice).toBe(250000000);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('담보채권액 (2023.2.28 이후 양도) → 기준시가 적용', () => {
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '1',
+        transferDate: '2024-06-15', // 2023.2.28 이후
+        acquireDate: '2023-03-15',
+        acquireCause: '8',
+        transferPrice: 1200000000,
+        acquirePrice: 1000000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '02',
+        holdingYears: 1,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 1000000000,
+          debtAmount: 400000000,
+          valuationMethod: 'COLLATERAL_DEBT',
+          donorActualAcquireCost: 600000000,
+          donorStandardPriceAtAcquire: 500000000,
+          donorAcquireCost: 600000000,
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 담보채권액(2023.2.28 이후) → 기준시가(500M) 적용
+    // 비율 = 400M / 1000M = 0.4
+    // 취득가액 = 500M × 0.4 = 200,000,000
+    expect(assetResult.effectiveAcquirePrice).toBe(200000000);
+    expect(assetResult.effectiveTransferPrice).toBe(400000000);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('담보채권액 (2023.2.27 이전 양도) → 실지취득가액 적용', () => {
+    const testCase = createInheritanceTestCase([
+      {
+        rateCode: '1-10',
+        assetTypeCode: '1',
+        transferDate: '2023-02-20', // 2023.2.27 이전
+        acquireDate: '2022-06-15',
+        acquireCause: '8',
+        transferPrice: 900000000,
+        acquirePrice: 700000000,
+        acquirePriceType: 'ACTUAL',
+        ltDeductionCode: '02',
+        holdingYears: 0,
+        giftWithDebt: {
+          enabled: true,
+          assessedValue: 700000000,
+          debtAmount: 350000000,
+          valuationMethod: 'COLLATERAL_DEBT',
+          donorActualAcquireCost: 400000000, // 실지취득가액 적용
+          donorStandardPriceAtAcquire: 300000000,
+          donorAcquireCost: 400000000,
+        },
+        userFlags: defaultUserFlags,
+      },
+    ]);
+
+    const result = calculateTaxCase(testCase);
+    const assetResult = result.assetResults[0];
+
+    // 담보채권액(2023.2.27 이전) → 실지취득가액(400M) 적용
+    // 비율 = 350M / 700M = 0.5
+    // 취득가액 = 400M × 0.5 = 200,000,000
+    expect(assetResult.effectiveAcquirePrice).toBe(200000000);
+    expect(assetResult.effectiveTransferPrice).toBe(350000000);
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
 describe('I-008: 가업상속공제 대상', () => {
   it('가업상속공제 대상 자산 양도 → 경고 표시', () => {
     const testCase = createInheritanceTestCase([

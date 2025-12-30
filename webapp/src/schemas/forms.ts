@@ -183,12 +183,30 @@ export const BP1AssetSchema = z.object({
     ]).default('NONE'),
   }).optional(),
 
-  // 부담부증여 정보
+  // 부담부증여 정보 (소득세법 시행령 제159조)
   giftWithDebt: z.object({
     enabled: z.boolean().default(false),
-    assessedValue: KRWAmount.default(0),     // 증여재산평가액
+    assessedValue: KRWAmount.default(0),     // 증여재산평가액 (상증법 평가액)
     debtAmount: KRWAmount.default(0),        // 인수채무액
-    donorAcquireCost: KRWAmount.default(0),  // 증여자취득가액
+
+    // 증여재산 평가방법 (시행령 제159조 제1항, 2023년 개정)
+    // 평가방법에 따라 취득가액 산정 기준이 달라짐
+    valuationMethod: z.enum([
+      'MARKET_PRICE',           // 시가 (매매/감정/유사매매사례가액) → 실지취득가액 적용
+      'SUPPLEMENTARY_STANDARD', // 보충적 평가방법 (기준시가) → 취득 당시 기준시가 적용
+      'RENT_CONVERSION',        // 임대료 환산가액 → 2020.2.11 이후 기준시가 적용
+      'COLLATERAL_DEBT',        // 담보채권액 → 2023.2.28 이후 기준시가 적용
+    ]).default('MARKET_PRICE'),
+
+    // 증여자 취득가액 (평가방법에 따라 선택 적용)
+    donorActualAcquireCost: KRWAmount.default(0),    // 증여자 실지취득가액
+    donorStandardPriceAtAcquire: KRWAmount.default(0), // 증여자 취득 당시 기준시가
+
+    // 하위호환: 기존 donorAcquireCost 필드 유지 (deprecated)
+    donorAcquireCost: KRWAmount.default(0),  // @deprecated: donorActualAcquireCost 사용
+
+    // 증여일 (기간 판정용)
+    giftDate: DateString.optional(),
   }).optional(),
 
   // 이월과세 정보 (소득세법 제97조의2)
